@@ -47,7 +47,7 @@ export default function Header() {
             {/* Logo */}
             <Link className="flex items-center" href="/">
               <div className="w-[200px] h-[70px]">
-                <img className="w-[200px] h-[70px]" src="/logo_AU.png" alt="" />
+                <img className="w-[200px] h-[70px] py-2" src="/logo_AU.png" alt="" />
               </div>
             </Link>
 
