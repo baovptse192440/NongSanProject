@@ -1,138 +1,152 @@
+"use client";
+
+import React from "react";
 import Image from "next/image";
+import { motion } from "framer-motion";
 import { MapPin, Building2, Mail, Phone } from "lucide-react";
 
 export default function FooterAU() {
   return (
-    <footer className="w-full bg-[#0a923c] border-t border-white/20 mt-12 pt-8 pb-6 text-white">
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* LEFT INFO */}
-          <div className="col-span-1 lg:col-span-2 space-y-4 max-w-[500px]">
-            <div className="relative w-[180px] h-[90px]">
-              <Image 
-                src="/logo_AU.png" 
-                alt="AU logo" 
+    <footer className="w-full bg-[#0a923c] text-white pt-12 pb-8 mt-12 relative overflow-hidden">
+      {/* BACKGROUND EFFECT */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.06 }}
+        transition={{ duration: 1.2 }}
+        className="absolute inset-0 bg-[url('/pattern.png')] bg-cover bg-center pointer-events-none"
+      />
+
+      <div className="container mx-auto px-4 relative z-10">
+        {/* GRID */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"
+        >
+          {/* COLUMN 1 — COMPANY INFO */}
+          <div className="space-y-4 sm:col-span-2">
+            <div className="relative w-[160px] h-[80px] sm:w-[180px] sm:h-[90px]">
+              <Image
+                src="/logo_AU.png"
+                alt="AU logo"
                 fill
                 className="object-contain"
                 priority
               />
             </div>
 
-            <div className="space-y-3">
-              <h3 className="font-semibold text-sm uppercase tracking-wide">
-                CÔNG TY TNHH CÔNG NGHỆ VÀ THƯƠNG MẠI AU
-              </h3>
-
-              <div className="space-y-2 text-xs leading-relaxed">
-                <p className="flex items-start gap-2">
-                  <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0 text-white/70" />
-                  <span>Địa chỉ ĐKKD: Tầng 1, Tòa nhà số 109-111, Xã Bình Hưng, TP. Hồ Chí Minh, Việt Nam</span>
-                </p>
-                <p className="flex items-start gap-2">
-                  <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0 text-white/70" />
-                  <span>Địa chỉ liên hệ: 262/3 Lũy Bán Bích, Quận Tân Phú, TP. Hồ Chí Minh</span>
-                </p>
-                <p className="flex items-start gap-2">
-                  <Building2 className="w-3.5 h-3.5 mt-0.5 shrink-0 text-white/70" />
-                  <span>Kho Tân Phú: 284/11 Lũy Bán Bích, Quận Tân Phú</span>
-                </p>
-                <p className="flex items-center gap-2">
-                  <Mail className="w-3.5 h-3.5 shrink-0 text-white/70" />
-                  <a href="mailto:info@au.vn" className="hover:text-white/80 transition-colors">info@au.vn</a>
-                </p>
-                <p className="flex items-center gap-2">
-                  <Phone className="w-3.5 h-3.5 shrink-0 text-white/70" />
-                  <a href="tel:02877702614" className="hover:text-white/80 transition-colors font-medium">
-                    02877702614 (8h00 - 18h00)
-                  </a>
-                </p>
-              </div>
+            <div className="space-y-2 text-xs leading-relaxed">
+              <FooterItem
+                icon={<MapPin className="w-4 h-4 text-white/80" />}
+                text="Địa chỉ ĐKKD: Tầng 1, Tòa nhà số 109-111, Xã Bình Hưng, TP. Hồ Chí Minh, Việt Nam"
+              />
+              <FooterItem
+                icon={<MapPin className="w-4 h-4 text-white/80" />}
+                text="Địa chỉ liên hệ: 262/3 Lũy Bán Bích, Quận Tân Phú, TP. Hồ Chí Minh"
+              />
+              <FooterItem
+                icon={<Building2 className="w-4 h-4 text-white/80" />}
+                text="Kho Tân Phú: 284/11 Lũy Bán Bích, Quận Tân Phú"
+              />
+              <FooterItemLink
+                icon={<Mail className="w-4 h-4 text-white/80" />}
+                href="mailto:info@au.vn"
+                text="info@au.vn"
+              />
+              <FooterItemLink
+                icon={<Phone className="w-4 h-4 text-white/80" />}
+                href="tel:02877702614"
+                text="02877702614 (8h00 - 18h00)"
+                bold
+              />
             </div>
           </div>
 
-          {/* ACCOUNT + INFO */}
-          <div className="space-y-4">
-            <div>
-              <h3 className="font-semibold text-sm mb-3 pb-1.5 border-b border-white/30">TÀI KHOẢN</h3>
-              <ul className="space-y-2 text-xs">
-                <li className="hover:text-white/80 cursor-pointer transition-colors">
-                  Tài khoản của tôi
-                </li>
-                <li className="hover:text-white/80 cursor-pointer transition-colors">
-                  Điểm thưởng
-                </li>
-                <li className="hover:text-white/80 cursor-pointer transition-colors">
-                  Giỏ hàng
-                </li>
-              </ul>
-            </div>
+          {/* COLUMN 2 — ACCOUNT */}
+          <FooterList
+            title="TÀI KHOẢN"
+            items={["Tài khoản của tôi", "Điểm thưởng", "Giỏ hàng"]}
+          />
 
-            <div>
-              <h3 className="font-semibold text-sm mb-3 pb-1.5 border-b border-white/20">THÔNG TIN</h3>
-              <ul className="space-y-2 text-xs">
-                <li className="hover:text-white/80 cursor-pointer transition-colors">
-                  Về AU
-                </li>
-                <li className="hover:text-white/80 cursor-pointer transition-colors">
-                  Điều khoản
-                </li>
-                <li className="hover:text-white/80 cursor-pointer transition-colors">
-                  Bảo mật
-                </li>
-                <li className="hover:text-white/80 cursor-pointer transition-colors">
-                  Xuất khẩu
-                </li>
-                <li className="hover:text-white/80 cursor-pointer transition-colors">
-                  Tuyển dụng
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          {/* CONNECT + APP */}
-          <div className="space-y-4">
-            <div>
-              <h3 className="font-semibold text-sm mb-3 pb-1.5 border-b border-white/20">KẾT NỐI</h3>
-              <div className="space-y-3">
-                <div className="relative w-full h-[45px] rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                  
-                </div>
-
-                <div className="flex gap-2">
-                  <div className="relative w-[55px] h-[55px] rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                    
-                  </div>
-                  <div className="relative w-[55px] h-[55px] rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                    
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-sm mb-3 pb-1.5 border-b border-white/20">ỨNG DỤNG</h3>
-              <div className="flex gap-3">
-                <div className="relative w-[85px] h-[85px] rounded-lg overflow-hidden shadow-sm bg-white p-1.5">
-                  
-                </div>
-                <div className="space-y-2 flex-1">
-                  <div className="relative w-full h-[35px] rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                    
-                  </div>
-                  <div className="relative w-full h-[35px] rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                    
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+          {/* COLUMN 3 — INFO */}
+          <FooterList
+            title="THÔNG TIN"
+            items={["Về AU", "Điều khoản", "Bảo mật", "Xuất khẩu", "Tuyển dụng"]}
+          />
+        </motion.div>
 
         {/* COPYRIGHT */}
-        <div className="text-center text-white/70 text-xs mt-8 pt-6 border-t border-white/20">
-          <p>Copyright © AU 2025. All rights reserved.</p>
-        </div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          transition={{ duration: 1 }}
+          className="text-center text-white/80 text-xs mt-10 pt-6 border-t border-white/20"
+        >
+          <p>© AU 2025. All rights reserved.</p>
+        </motion.div>
       </div>
     </footer>
+  );
+}
+
+/* -------------------------------- */
+/* REUSABLE SUB COMPONENTS          */
+/* -------------------------------- */
+
+type FooterItemProps = {
+  icon?: React.ReactNode;
+  text: string;
+};
+
+function FooterItem({ icon, text }: FooterItemProps) {
+  return (
+    <div className="flex items-start gap-2.5 sm:gap-3 opacity-90">
+      <div className="flex-shrink-0">{icon}</div>
+      <span className="text-xs sm:text-sm">{text}</span>
+    </div>
+  );
+}
+
+type FooterItemLinkProps = {
+  icon?: React.ReactNode;
+  text: string;
+  href?: string;
+  bold?: boolean;
+};
+
+function FooterItemLink({ icon, text, href, bold }: FooterItemLinkProps) {
+  return (
+    <a
+      href={href ?? "#"}
+      className="flex items-center gap-2.5 sm:gap-3 hover:text-white opacity-90 transition-all"
+    >
+      <div className="flex-shrink-0">{icon}</div>
+      <span className={bold ? "font-semibold text-xs sm:text-sm" : "text-xs sm:text-sm"}>{text}</span>
+    </a>
+  );
+}
+
+function FooterList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div className="mt-6 sm:mt-0">
+      <h3 className="font-semibold text-sm mb-3 pb-2 border-b border-white/25">
+        {title}
+      </h3>
+
+      <ul className="space-y-2 text-xs sm:text-sm">
+        {items.map((item, i) => (
+          <motion.li
+            key={i}
+            whileHover={{ x: 4 }}
+            transition={{ duration: 0.18 }}
+            className="cursor-pointer text-white/80 hover:text-white transition"
+          >
+            {item}
+          </motion.li>
+        ))}
+      </ul>
+    </div>
   );
 }

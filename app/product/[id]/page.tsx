@@ -3,22 +3,22 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import Header from "../../common/header";
 import Footer from "../../common/footer";
-import { 
-  ShoppingCart, 
-  Star, 
-  TrendingUp, 
-  Heart, 
-  Share2, 
-  Check, 
-  Truck, 
-  Shield, 
+import {
+  ShoppingCart,
+  Star,
+  TrendingUp,
+  Heart,
+  Share2,
+  Check,
+  Truck,
+  Shield,
   Minus,
-  Plus
+  Plus,
 } from "lucide-react";
 
-// Mock product data - In real app, fetch from API based on ID
 const getProductById = (id: string) => {
   const products = [
     {
@@ -31,9 +31,8 @@ const getProductById = (id: string) => {
       discount: "-61%",
       rating: 4.5,
       reviews: 24,
-      description: "Cam Nam Phi tươi ngon, mọng nước, giàu vitamin C. Sản phẩm được nhập khẩu trực tiếp từ Nam Phi, đảm bảo chất lượng cao và an toàn thực phẩm.",
-      origin: "Nam Phi",
-      weight: "1kg",
+      description:
+        "Cam Nam Phi tươi ngon, mọng nước, giàu vitamin C. Sản phẩm nhập khẩu trực tiếp từ Nam Phi, đảm bảo chất lượng cao và an toàn thực phẩm.",
       stock: 50,
       images: ["/sp/1.jpg", "/sp/1.jpg", "/sp/1.jpg", "/sp/1.jpg"],
       specifications: {
@@ -41,121 +40,10 @@ const getProductById = (id: string) => {
         "Trọng lượng": "1kg",
         "Bảo quản": "Nơi khô ráo, thoáng mát",
         "Hạn sử dụng": "30 ngày",
-      }
-    },
-    {
-      id: 2,
-      img: "/sp/2.jpg",
-      name: "Kẹo Dynamite BigBang Vị Socola Bạc Hà - Gói 120g",
-      sold: 999,
-      price: "60,000 ₫",
-      oldPrice: "100,000 ₫",
-      discount: "-40%",
-      rating: 4.8,
-      reviews: 156,
-      description: "Kẹo Dynamite BigBang với hương vị socola bạc hà độc đáo, thơm ngon. Sản phẩm được sản xuất theo tiêu chuẩn chất lượng cao.",
-      origin: "Việt Nam",
-      weight: "120g",
-      stock: 100,
-      images: ["/sp/2.jpg", "/sp/2.jpg", "/sp/2.jpg"],
-      specifications: {
-        "Xuất xứ": "Việt Nam",
-        "Trọng lượng": "120g",
-        "Bảo quản": "Nơi khô ráo, tránh ánh nắng",
-        "Hạn sử dụng": "12 tháng",
-      }
-    },
-    {
-      id: 3,
-      img: "/sp/3.jpg",
-      name: "Thùng 24 Ly Trà Sữa (12 Oolong Nướng)",
-      sold: 658,
-      price: "310,000 ₫",
-      oldPrice: "360,000 ₫",
-      discount: "-14%",
-      rating: 4.6,
-      reviews: 89,
-      description: "Thùng 24 ly trà sữa Oolong nướng thơm ngon, đậm đà. Sản phẩm tiện lợi, phù hợp cho gia đình và văn phòng.",
-      origin: "Đài Loan",
-      weight: "24 ly",
-      stock: 30,
-      images: ["/sp/3.jpg", "/sp/3.jpg"],
-      specifications: {
-        "Xuất xứ": "Đài Loan",
-        "Trọng lượng": "24 ly",
-        "Bảo quản": "Nơi khô ráo, thoáng mát",
-        "Hạn sử dụng": "18 tháng",
-      }
-    },
-    {
-      id: 4,
-      img: "/sp/4.jpg",
-      name: "Cà Phê Cappuccino Sữa Dừa Hoà Tan - UFO Coffee",
-      sold: 707,
-      price: "259,000 ₫",
-      oldPrice: "400,000 ₫",
-      discount: "-35%",
-      rating: 4.9,
-      reviews: 203,
-      description: "Cà phê Cappuccino sữa dừa hoà tan thơm ngon, đậm đà. Sản phẩm được chế biến từ hạt cà phê Arabica cao cấp.",
-      origin: "Việt Nam",
-      weight: "500g",
-      stock: 45,
-      images: ["/sp/4.jpg", "/sp/4.jpg", "/sp/4.jpg", "/sp/4.jpg"],
-      specifications: {
-        "Xuất xứ": "Việt Nam",
-        "Trọng lượng": "500g",
-        "Bảo quản": "Nơi khô ráo, tránh ẩm",
-        "Hạn sử dụng": "24 tháng",
-      }
-    },
-    {
-      id: 5,
-      img: "/sp/5.jpg",
-      name: "Cà Phê Cappuccino Sữa Dừa [Đà Nẵng] - UFO Coffee",
-      sold: 60,
-      price: "55,000 ₫",
-      oldPrice: "90,000 ₫",
-      discount: "-39%",
-      rating: 4.7,
-      reviews: 45,
-      description: "Cà phê Cappuccino sữa dừa đặc sản Đà Nẵng, thơm ngon đặc biệt. Sản phẩm được sản xuất tại Đà Nẵng với công thức độc quyền.",
-      origin: "Đà Nẵng, Việt Nam",
-      weight: "200g",
-      stock: 20,
-      images: ["/sp/5.jpg", "/sp/5.jpg"],
-      specifications: {
-        "Xuất xứ": "Đà Nẵng, Việt Nam",
-        "Trọng lượng": "200g",
-        "Bảo quản": "Nơi khô ráo, tránh ẩm",
-        "Hạn sử dụng": "18 tháng",
-      }
-    },
-    {
-      id: 6,
-      img: "/sp/1.jpg",
-      name: "Mật Ong Rừng U Minh Hạ - Chai 500ml",
-      sold: 450,
-      price: "180,000 ₫",
-      oldPrice: "250,000 ₫",
-      discount: "-28%",
-      rating: 4.8,
-      reviews: 112,
-      description: "Mật ong rừng U Minh Hạ nguyên chất, thơm ngon tự nhiên. Sản phẩm được thu hoạch từ rừng U Minh Hạ, đảm bảo chất lượng cao.",
-      origin: "U Minh Hạ, Việt Nam",
-      weight: "500ml",
-      stock: 35,
-      images: ["/sp/1.jpg", "/sp/1.jpg", "/sp/1.jpg"],
-      specifications: {
-        "Xuất xứ": "U Minh Hạ, Việt Nam",
-        "Trọng lượng": "500ml",
-        "Bảo quản": "Nơi khô ráo, tránh ánh nắng",
-        "Hạn sử dụng": "36 tháng",
-      }
+      },
     },
   ];
-
-  return products.find(p => p.id === parseInt(id)) || products[0];
+  return products.find((p) => p.id === parseInt(id)) || products[0];
 };
 
 export default function ProductDetailPage({ params }: { params: { id: string } }) {
@@ -164,28 +52,32 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
   const [quantity, setQuantity] = useState(1);
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7]">
+    <div className="min-h-screen mt-10 bg-[#f5f5f7] md:mt-32">
       <Header />
-      
+
       {/* Breadcrumb */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="container mx-auto px-5 py-4">
-          <div className="flex items-center gap-2.5 text-base text-gray-600">
-            <Link href="/" className="hover:text-green-600 transition-colors font-medium">Trang chủ</Link>
+      <div className="hidden md:flex bg-white border-b border-gray-200 shadow-sm">
+        <div className="container mx-auto px-4 py-2">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
+            <Link href="/" className="hover:text-green-600 font-medium">Trang chủ</Link>
             <span>/</span>
-            <Link href="/san-pham" className="hover:text-green-600 transition-colors font-medium">Sản phẩm</Link>
+            <Link href="/san-pham" className="hover:text-green-600 font-medium">Sản phẩm</Link>
             <span>/</span>
             <span className="text-gray-900 font-semibold">{product.name}</span>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-5 py-10">
-        <div className="flex flex-col lg:flex-row gap-10">
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex flex-col lg:flex-row gap-6">
           {/* LEFT - IMAGES */}
-          <div className="w-full lg:w-[550px] space-y-5">
-            {/* Main Image */}
-            <div className="relative w-full h-[550px] rounded-xl overflow-hidden border border-gray-200 bg-white shadow-md">
+          <div className="w-full lg:w-[500px] lg:sticky lg:top-[100px] space-y-4">
+            <motion.div
+              className="relative w-full h-[350px] sm:h-[400px] lg:h-[500px] rounded-lg overflow-hidden border border-gray-200 bg-white shadow"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+            >
               <Image
                 src={product.images[selectedImage] || product.img}
                 alt={product.name}
@@ -193,157 +85,126 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 className="object-cover"
                 priority
               />
-              <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1.5 rounded-lg text-sm font-semibold border border-white shadow-sm">
+              <div className="absolute top-3 right-3 bg-red-500 text-white px-2 py-1 rounded text-xs font-semibold border border-white shadow-sm">
                 {product.discount}
               </div>
-            </div>
+            </motion.div>
 
-            {/* Thumbnail Images */}
-            <div className="flex gap-4 overflow-x-auto">
+            <div className="flex gap-3 overflow-x-auto pb-1">
               {product.images.map((img, i) => (
-                <button
+                <motion.button
                   key={i}
                   onClick={() => setSelectedImage(i)}
-                  className={`relative w-24 h-24 rounded-xl overflow-hidden border-2 shrink-0 transition-all shadow-sm ${
-                    selectedImage === i 
-                      ? "border-green-600 shadow-md" 
-                      : "border-gray-200 hover:border-gray-300"
+                  whileHover={{ scale: 1.05 }}
+                  className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 shrink-0 transition-all shadow-sm ${
+                    selectedImage === i ? "border-green-600 shadow-md" : "border-gray-200 hover:border-gray-300"
                   }`}
                 >
-                  <Image
-                    src={img}
-                    alt={`${product.name} ${i + 1}`}
-                    fill
-                    className="object-cover"
-                  />
-                </button>
+                  <Image src={img} alt={`${product.name} ${i}`} fill className="object-cover" />
+                </motion.button>
               ))}
             </div>
           </div>
 
           {/* RIGHT - PRODUCT INFO */}
-          <div className="flex-1 space-y-7">
-            {/* Product Name */}
-            <div>
-              <h1 className="text-3xl font-semibold text-gray-900 mb-4 leading-tight">{product.name}</h1>
-              
-              {/* Rating & Reviews */}
-              <div className="flex items-center gap-5 mb-5">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex items-center text-yellow-400">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        size={18}
-                        className={i < Math.floor(product.rating) ? "fill-current" : ""}
-                        strokeWidth={1}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-base text-gray-600">({product.rating})</span>
-                </div>
-                <div className="flex items-center gap-2 text-base text-gray-500">
-                  <TrendingUp className="w-5 h-5 text-green-600" strokeWidth={1} />
-                  <span>{product.sold} đã bán</span>
-                </div>
-                <div className="text-base text-gray-500">
-                  <span className="text-green-600 font-semibold">{product.stock}</span> sản phẩm có sẵn
-                </div>
+          <div className="flex-1 space-y-5">
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{product.name}</h1>
+
+            <div className="flex flex-wrap gap-2 items-center text-gray-600 text-sm">
+              <div className="flex items-center gap-0.5">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    size={14}
+                    className={i < Math.floor(product.rating) ? "fill-yellow-400" : "text-gray-300"}
+                  />
+                ))}
+                <span>{product.rating}</span>
+              </div>
+              <div className="flex items-center gap-1 text-gray-500">
+                <TrendingUp className="w-3 h-3 text-green-600" strokeWidth={1} /> {product.sold} đã bán
+              </div>
+              <div>
+                <span className="text-green-600 font-semibold">{product.stock}</span> có sẵn
               </div>
             </div>
 
-            {/* Price */}
-            <div className="border-t border-b border-gray-200 py-5">
-              <div className="flex items-baseline gap-4">
-                <p className="text-4xl font-bold text-green-700">{product.price}</p>
-                <p className="text-xl line-through text-gray-400">{product.oldPrice}</p>
-                <span className="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-sm font-semibold border border-red-200 shadow-sm">
-                  {product.discount}
-                </span>
-              </div>
+            <div className="flex flex-wrap items-baseline gap-2 py-2 border-b border-gray-200">
+              <span className="text-xl sm:text-2xl font-bold text-green-700">{product.price}</span>
+              <span className="line-through text-gray-400 text-sm">{product.oldPrice}</span>
+              <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded text-xs font-semibold border border-red-200">
+                {product.discount}
+              </span>
             </div>
 
-            {/* Description */}
-            <div>
-              <h3 className="font-semibold text-lg mb-3">Mô tả sản phẩm</h3>
-              <p className="text-base text-gray-700 leading-relaxed">{product.description}</p>
-            </div>
+            <p className="text-gray-700 text-sm">{product.description}</p>
 
-            {/* Specifications */}
-            <div className="border border-gray-200 rounded-xl p-5 bg-white shadow-md">
-              <h3 className="font-semibold text-lg mb-4">Thông tin sản phẩm</h3>
-              <div className="space-y-3">
+            <div className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm text-sm">
+              <h3 className="font-semibold mb-2">Thông tin sản phẩm</h3>
+              <div className="space-y-1">
                 {Object.entries(product.specifications).map(([key, value]) => (
-                  <div key={key} className="flex items-center gap-4 text-base">
-                    <span className="text-gray-600 w-28 font-medium">{key}:</span>
-                    <span className="text-gray-900 font-semibold">{value}</span>
+                  <div key={key} className="flex justify-between">
+                    <span className="font-medium">{key}:</span>
+                    <span className="font-semibold">{value}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Quantity & Add to Cart */}
-            <div className="space-y-5">
-              <div className="flex items-center gap-5">
-                <span className="text-base font-semibold text-gray-700">Số lượng:</span>
-                <div className="flex items-center border border-gray-200 rounded-xl shadow-md">
-                  <button
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="p-3 hover:bg-gray-50 transition-colors border-r border-gray-200"
-                  >
-                    <Minus size={18} strokeWidth={1} />
-                  </button>
-                  <span className="px-5 py-3 text-base font-semibold min-w-[70px] text-center">{quantity}</span>
-                  <button
-                    onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                    className="p-3 hover:bg-gray-50 transition-colors border-l border-gray-200"
-                  >
-                    <Plus size={18} strokeWidth={1} />
-                  </button>
-                </div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
+              <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden text-sm">
+                <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="px-3 py-1 hover:bg-gray-50">
+                  <Minus size={14} />
+                </button>
+                <span className="px-3 py-1 text-center font-semibold min-w-[40px]">{quantity}</span>
+                <button onClick={() => setQuantity(Math.min(product.stock, quantity + 1))} className="px-3 py-1 hover:bg-gray-50">
+                  <Plus size={14} />
+                </button>
               </div>
 
-              <div className="flex gap-4">
-                <button className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2.5 transition-colors border border-green-700 shadow-md text-base">
-                  <ShoppingCart size={20} strokeWidth={1} />
-                  <span>Thêm vào giỏ hàng</span>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                className="flex-1 bg-green-600 hover:bg-green-700 cursor-pointer text-white py-2 rounded-lg font-semibold flex items-center justify-center gap-1 shadow-sm text-sm"
+              >
+                <ShoppingCart size={16} /> Thêm vào giỏ hàng
+              </motion.button>
+
+              <div className="flex gap-2">
+                <button className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50">
+                  <Heart size={18} className="text-gray-600" />
                 </button>
-                <button className="px-5 py-3.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-sm">
-                  <Heart size={20} strokeWidth={1} className="text-gray-600" />
-                </button>
-                <button className="px-5 py-3.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-sm">
-                  <Share2 size={20} strokeWidth={1} className="text-gray-600" />
+                <button className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50">
+                  <Share2 size={18} className="text-gray-600" />
                 </button>
               </div>
             </div>
 
-            {/* Benefits */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-5 border-t border-gray-200">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center shadow-sm">
-                  <Truck className="w-6 h-6 text-green-600" strokeWidth={1} />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-4 border-t border-gray-200 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center shadow-sm">
+                  <Truck className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-base font-semibold text-gray-900">Miễn phí vận chuyển</p>
-                  <p className="text-sm text-gray-500">Đơn hàng trên 500k</p>
+                  <p className="font-semibold text-gray-900">Miễn phí vận chuyển</p>
+                  <p className="text-gray-500">Đơn hàng trên 500k</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center shadow-sm">
-                  <Shield className="w-6 h-6 text-green-600" strokeWidth={1} />
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center shadow-sm">
+                  <Shield className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-base font-semibold text-gray-900">Đảm bảo chất lượng</p>
-                  <p className="text-sm text-gray-500">100% chính hãng</p>
+                  <p className="font-semibold text-gray-900">Đảm bảo chất lượng</p>
+                  <p className="text-gray-500">100% chính hãng</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center shadow-sm">
-                  <Check className="w-6 h-6 text-green-600" strokeWidth={1} />
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center shadow-sm">
+                  <Check className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-base font-semibold text-gray-900">Đổi trả dễ dàng</p>
-                  <p className="text-sm text-gray-500">Trong 7 ngày</p>
+                  <p className="font-semibold text-gray-900">Đổi trả dễ dàng</p>
+                  <p className="text-gray-500">Trong 7 ngày</p>
                 </div>
               </div>
             </div>
@@ -355,4 +216,3 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
     </div>
   );
 }
-

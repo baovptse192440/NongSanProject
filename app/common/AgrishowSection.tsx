@@ -1,6 +1,9 @@
+"use client";
+
 import React from "react";
 import Image from "next/image";
 import { ChevronRight, Calendar, User, Sparkles } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function AgrishowSection() {
   const categories = [
@@ -25,50 +28,67 @@ export default function AgrishowSection() {
   return (
     <div className="w-full bg-[#f5f5f7] py-8">
       <div className="container mx-auto px-4">
-        <div className="flex flex-col lg:flex-row gap-4">
+        <div className="flex flex-col lg:flex-row gap-6">
+
           {/* LEFT MENU */}
-          <div className="w-full lg:w-[240px] bg-white rounded-lg shadow-sm p-4 h-fit sticky top-4 border border-gray-200">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="w-full lg:w-[240px] bg-white rounded-lg shadow-sm p-4 border border-gray-200
+                       lg:sticky lg:top-4"
+          >
             <div className="flex items-center gap-1.5 mb-4">
               <Sparkles className="w-4 h-4 text-green-600" />
               <h2 className="font-semibold text-lg text-green-700">AGRISHOW</h2>
             </div>
             <ul className="space-y-1.5">
               {categories.map((item) => (
-                <li
+                <motion.li
                   key={item}
+                  whileHover={{ x: 4 }}
                   className="flex items-center gap-2 cursor-pointer group hover:bg-green-50 p-2 rounded-lg transition-colors"
                 >
-                  <ChevronRight 
-                    size={14} 
-                    className="text-green-600 group-hover:text-green-700 group-hover:translate-x-0.5 transition-transform" 
+                  <ChevronRight
+                    size={14}
+                    className="text-green-600 group-hover:text-green-700 transition-colors"
                   />
                   <span className="text-sm text-gray-700 group-hover:text-green-700 transition-colors">
                     {item}
                   </span>
-                </li>
+                </motion.li>
               ))}
             </ul>
-          </div>
+          </motion.div>
 
           {/* MAIN ARTICLE */}
-          <div className="flex-1 bg-white rounded-lg shadow-sm overflow-hidden max-w-[700px] border border-gray-200">
-            <div className="relative w-full h-[280px]">
-              <Image
-                src="/banner/banner_1.jpg"
-                alt="main banner"
-                fill
-                className="object-cover"
-                priority
-              />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="w-full lg:flex-1 bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200"
+          >
+            <div className="relative w-full h-[220px] sm:h-[280px] md:h-[320px] lg:h-[360px]">
+              <motion.div whileHover={{ scale: 1.03 }} className="w-full h-full relative">
+                <Image
+                  src="/banner/banner_1.jpg"
+                  alt="main banner"
+                  fill
+                  className="object-cover rounded-t-lg"
+                  priority
+                />
+              </motion.div>
             </div>
 
             <div className="p-4">
-              <h3 className="font-semibold text-lg leading-snug text-gray-900 hover:text-green-700 transition-colors cursor-pointer">
-                Tuyển sỉ quà Tết 2026 cùng AU – Đồng hành cùng doanh nghiệp trong
-                hành trình trao gửi tri ân và giá trị Việt
-              </h3>
+              <motion.h3
+                whileHover={{ color: "#16a34a" }}
+                className="font-semibold text-lg leading-snug text-gray-900 cursor-pointer transition-colors"
+              >
+                Tuyển sỉ quà Tết 2026 cùng AU – Đồng hành cùng doanh nghiệp trong hành trình trao gửi tri ân và giá trị Việt
+              </motion.h3>
 
-              <div className="flex items-center gap-3 mt-3 text-xs text-gray-500">
+              <div className="flex flex-wrap items-center gap-3 mt-3 text-xs text-gray-500">
                 <div className="flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5" />
                   <span className="font-medium">Vu Vy</span>
@@ -82,35 +102,42 @@ export default function AgrishowSection() {
               <div className="mt-4 pt-4 border-t border-gray-200">
                 <h4 className="font-medium text-sm text-gray-900 mb-3">Bài viết liên quan</h4>
                 <div className="space-y-2.5">
-                  <div className="flex items-start gap-2 p-2 rounded-lg hover:bg-green-50 transition-colors cursor-pointer group">
-                    <div className="w-1.5 h-1.5 bg-green-600 rounded-full mt-1.5 shrink-0"></div>
-                    <p className="text-sm text-gray-700 group-hover:text-green-700 font-medium transition-colors">
-                      Mùa Hồng Treo Gió Đà Lạt vào thời điểm nào?
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-2 p-2 rounded-lg hover:bg-green-50 transition-colors cursor-pointer group">
-                    <div className="w-1.5 h-1.5 bg-green-600 rounded-full mt-1.5 shrink-0"></div>
-                    <p className="text-sm text-gray-700 group-hover:text-green-700 font-medium transition-colors">
-                      Cà phê Giảng - Cà phê nổi tiếng thế giới
-                    </p>
-                  </div>
+                  {newsItems.slice(1, 3).map((item, i) => (
+                    <motion.div
+                      key={i}
+                      whileHover={{ x: 4 }}
+                      className="flex items-start gap-2 p-2 rounded-lg hover:bg-green-50 transition-colors cursor-pointer group"
+                    >
+                      <div className="w-1.5 h-1.5 bg-green-600 rounded-full mt-1.5 shrink-0"></div>
+                      <p className="text-sm text-gray-700 group-hover:text-green-700 font-medium transition-colors line-clamp-3">
+                        {item.title}
+                      </p>
+                    </motion.div>
+                  ))}
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* RIGHT NEWS LIST */}
-          <div className="w-full lg:w-[320px] bg-white rounded-lg shadow-sm p-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="w-full lg:w-[320px] bg-white rounded-lg shadow-sm p-4 border border-gray-200
+                       lg:sticky lg:top-4 mt-6 lg:mt-0"
+          >
             <h3 className="font-semibold text-base text-gray-900 mb-4 pb-2 border-b border-gray-100">
               Tin tức nổi bật
             </h3>
             <div className="space-y-3">
               {newsItems.map((item, i) => (
-                <div
+                <motion.div
                   key={i}
+                  whileHover={{ x: 4 }}
                   className="flex gap-3 cursor-pointer group hover:bg-green-50 p-2 rounded-lg transition-colors"
                 >
-                  <div className="relative w-[100px] h-[70px] rounded-lg overflow-hidden shrink-0 shadow-sm group-hover:shadow-md transition-shadow">
+                  <div className="relative w-[80px] sm:w-[100px] h-[60px] sm:h-[70px] rounded-lg overflow-hidden shrink-0 shadow-sm group-hover:shadow-md transition-shadow">
                     <Image
                       src={`/sp/${(i % 5) + 1}.jpg`}
                       alt="news thumb"
@@ -127,10 +154,10 @@ export default function AgrishowSection() {
                       <span>22/10/2025</span>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     </div>

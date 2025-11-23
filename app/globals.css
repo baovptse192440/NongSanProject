@@ -3,7 +3,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  
+  --body-fs: 13px;
   /* Apple Design System Colors */
   --green-primary: #0a923c;
   --green-secondary: #10723a;
@@ -84,9 +84,54 @@ body {
   }
 }
 
-@media (min-width: 1400px) {
-  .container {
-    max-width: 1320px;
-  }
+@media only screen and (min-width: 1300px) {
+    .container {
+        max-width: 1260px;
+    }
 }
 
+/* ----- Hiệu ứng menu trượt từ bên phải ----- */
+
+.mobile-menu {
+  width: 18rem;              /* = 72 tailwind */
+  max-width: 80%;
+  height: 100%;
+  background: white;
+  box-shadow: -2px 0 15px rgba(0, 0, 0, 0.15);
+  border-radius: 12px 0 0 12px;
+  transform: translateX(100%);
+  opacity: 0;
+  transition: transform 0.35s ease, opacity 0.25s ease;
+}
+
+/* Khi menu xuất hiện */
+.mobile-menu.open {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+/* Overlay */
+.mobile-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.mobile-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.badge {
+  @apply absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center;
+}
+
+.badge-small {
+  @apply absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-3.5 h-3.5 flex items-center justify-center;
+}
+
+.menu-item {
+  @apply block py-2 border-b border-white/20 hover:bg-white/10 rounded-md transition;
+}
