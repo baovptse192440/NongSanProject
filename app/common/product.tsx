@@ -31,9 +31,9 @@ const scroll = (direction: "left" | "right") => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      className="flex-shrink-0 w-[180px] sm:w-[200px] md:w-[220px] lg:w-[240px]"
+      className="flex-shrink-0 w-[180px] sm:w-[200px] md:w-[220px] lg:w-[220px]"
     >
-      <div className="bg-white rounded-xs shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 group cursor-pointer flex flex-col h-full">
+      <div className="bg-white gap-2 w-56 rounded-xs shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 group cursor-pointer flex flex-col h-full">
         <div className="relative w-full h-[150px] sm:h-[180px] overflow-hidden bg-gray-50">
           <Image
             src={product.img}
@@ -52,15 +52,15 @@ const scroll = (direction: "left" | "right") => {
           </h3>
 
           <div className="mt-2">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0">
               {[...Array(5)].map((_, i) => (
                 <Star
                   key={i}
-                  size={12}
-                  className={i < Math.floor(product.rating) ? "fill-yellow-400" : "text-gray-300"}
+                  size={20}
+                  className={i < Math.floor(product.rating) ? "fill-yellow-400 text-white" : "fill-yellow-400 text-white"}
                 />
               ))}
-              <span className="text-xs text-gray-400 ml-1">({product.reviews})</span>
+              <span className="text-xs text-[#0a923c] ml-1">({product.reviews})</span>
             </div>
             <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
               <TrendingUp className="w-4 h-4 text-green-600" strokeWidth={1} />
@@ -68,18 +68,24 @@ const scroll = (direction: "left" | "right") => {
             </div>
           </div>
 
-          <div className="pt-2 border-t border-gray-200 mt-2">
+          <div className="flex justify-between pt-2 border-t border-gray-200 mt-2">
+            <div className="w-[50%]">
             <p className="text-green-700 font-semibold text-lg mb-1">{product.price}</p>
             <p className="line-through text-gray-400 text-sm">{product.oldPrice}</p>
-          </div>
-
-          <motion.button
+           
+              </div>
+              <div className="flex items-center justify-end w-[50%] ">
+                 <motion.button
             whileTap={{ scale: 0.95 }}
-            className="mt-3 w-full cursor-pointer text-green-600 py-2.5 text-sm font-semibold flex items-center justify-center gap-2 transition-all shadow-sm"
+            className="flex items-center justify-center w-[50%] border rounded-sm cursor-pointer text-green-600 py-2  hover:bg-[#0A923C] hover:text-white text-sm font-semibold transition-all shadow-sm"
           >
-            <ShoppingCart size={16} strokeWidth={1} />
+            <ShoppingCart size={20} strokeWidth={2} />
            
           </motion.button>
+              </div>
+          </div>
+
+          
         </div>
       </div>
     </motion.div>
@@ -109,23 +115,23 @@ const scroll = (direction: "left" | "right") => {
       </div>
         <button
           onClick={() => scroll("left")}
-          className="hidden sm:flex absolute left-0 top-1/2 -translate-y-1/2 w-10 h-10 items-center justify-center z-10"
+          className="hidden hover:cursor-pointer sm:flex absolute left-0 top-1/2 -translate-y-1/2 w-10 h-10 items-center justify-center z-10"
         >
-          <CircleChevronLeft size={20} className="text-gray-500 hover:text-green-600 transition-colors" />
+          <CircleChevronLeft size={25} className="text-gray-500 hover:text-green-600 transition-colors" />
         </button>
 
         <div
           ref={carouselRef}
-          className="flex gap-2 sm:gap-2 overflow-x-hidden scroll-smooth cursor-pointer no-scrollbar pt-12 pb-2 pl-2 sm:pl-0 pr-2 sm:pr-0"
+          className="flex gap-5 sm:gap-5 overflow-x-hidden scroll-smooth cursor-pointer no-scrollbar pt-12 pb-2 pl-2 sm:pl-0 pr-2 sm:pr-0"
         >
           {products.map((p) => <ProductCard key={p.id} product={p} />)}
         </div>
 
         <button
           onClick={() => scroll("right")}
-          className="hidden sm:flex absolute right-0 top-1/2 -translate-y-1/2 w-10 h-10 items-center justify-center z-10"
+          className="hidden hover:cursor-pointer sm:flex absolute right-0 top-1/2 -translate-y-1/2 w-10 h-10 items-center justify-center z-10"
         >
-          <CircleChevronRight size={20} className="text-gray-500 hover:text-green-600 transition-colors" />
+          <CircleChevronRight size={25} className="text-gray-500  hover:text-green-600 transition-colors" />
         </button>
       </div>
       
@@ -133,8 +139,61 @@ const scroll = (direction: "left" | "right") => {
 
       
 
+     {/* PRODUCT CAROUSEL */}
+        <div className="relative bg-white rounded-xs mt-10 shadow-md p-3 sm:p-5 border border-gray-200">
+       <div className="flex justify-between w-full border-b border-gray-200 pb-5">
+        <div className="font-semibold pl-5" >
+         Trái Cây Tươi Ngon
+        </div>
+        <div className="flex font-semibold gap-8 w-[50%]">
+          <a href="">Nội địa</a>
+          <a href="">Nội địa</a>
+          <a href="">Nội địa</a>
+        </div>
+        <div className="flex font-semibold items-center">
+          <a href="">Xem All</a>
+          <ChevronRight  size={16}/>
+        </div>
+       </div>
+     <div className="w-full mt-5 h-[198px] rounded-full overflow-hidden relative">
+  <a href="" className="block w-full h-full rounded-full">
+    <div
+      className="w-full h-full bg-center bg-cover"
+      style={{ backgroundImage: "url('/sp/1.jpg')" }}
+    ></div>
+  </a>
+</div>
+
+
+        <button
+          onClick={() => scroll("left")}
+          className="hidden hover:cursor-pointer sm:flex absolute left-0 top-175 -translate-y-1/2 w-10 h-10 items-center justify-center z-10"
+        >
+          <CircleChevronLeft size={25} className="text-gray-500 hover:text-green-600 transition-colors" />
+        </button>
+
+        <div
+          ref={carouselRef}
+          className="flex gap-2 sm:gap-5 overflow-x-hidden scroll-smooth cursor-pointer no-scrollbar pt-5 pb-2 pl-2 sm:pl-0 pr-2 sm:pr-0"
+        >
+          {products.map((p) => <ProductCard key={p.id} product={p} />)}
+        </div>
+         <div
+          ref={carouselRef}
+          className="flex gap-2 sm:gap-5 overflow-x-hidden scroll-smooth cursor-pointer no-scrollbar pt-5 pb-2 pl-2 sm:pl-0 pr-2 sm:pr-0"
+        >
+          {products.map((p) => <ProductCard key={p.id} product={p} />)}
+        </div>
+        
+        <button
+          onClick={() => scroll("right")}
+          className="hidden hover:cursor-pointer sm:flex absolute top-175  right-0 -translate-y-1/2 w-10 h-10 items-center justify-center z-10"
+        >
+          <CircleChevronRight size={25} className="text-gray-500 hover:text-green-600 transition-colors" />
+        </button>
+      </div>
       {/* PRODUCT CAROUSEL */}
-       <div className="relative bg-white rounded-xs mt-10 shadow-md p-3 sm:p-5 border border-gray-200">
+        <div className="relative bg-white rounded-xs mt-10 shadow-md p-3 sm:p-5 border border-gray-200">
        <div className="flex justify-between w-full border-b border-gray-200 pb-5">
         <div className="font-semibold pl-5" >
          Trái Cây Tươi Ngon
@@ -161,33 +220,33 @@ const scroll = (direction: "left" | "right") => {
 
         <button
           onClick={() => scroll("left")}
-          className="hidden sm:flex absolute left-0 top-1/2 -translate-y-1/2 w-10 h-10 items-center justify-center z-10"
+          className="hidden hover:cursor-pointer sm:flex absolute left-0 top-175 -translate-y-1/2 w-10 h-10 items-center justify-center z-10"
         >
           <CircleChevronLeft size={25} className="text-gray-500 hover:text-green-600 transition-colors" />
         </button>
 
         <div
           ref={carouselRef}
-          className="flex gap-2 sm:gap-2 overflow-x-hidden scroll-smooth cursor-pointer no-scrollbar pt-5 pb-2 pl-2 sm:pl-0 pr-2 sm:pr-0"
+          className="flex gap-2 sm:gap-5 overflow-x-hidden scroll-smooth cursor-pointer no-scrollbar pt-5 pb-2 pl-2 sm:pl-0 pr-2 sm:pr-0"
         >
           {products.map((p) => <ProductCard key={p.id} product={p} />)}
         </div>
          <div
           ref={carouselRef}
-          className="flex gap-2 sm:gap-2 overflow-x-hidden scroll-smooth cursor-pointer no-scrollbar pt-5 pb-2 pl-2 sm:pl-0 pr-2 sm:pr-0"
+          className="flex gap-2 sm:gap-5 overflow-x-hidden scroll-smooth cursor-pointer no-scrollbar pt-5 pb-2 pl-2 sm:pl-0 pr-2 sm:pr-0"
         >
           {products.map((p) => <ProductCard key={p.id} product={p} />)}
         </div>
         
         <button
           onClick={() => scroll("right")}
-          className="hidden sm:flex absolute right-0 top-1/2 -translate-y-1/2 w-10 h-10 items-center justify-center z-10"
+          className="hidden hover:cursor-pointer sm:flex absolute top-175  right-0 -translate-y-1/2 w-10 h-10 items-center justify-center z-10"
         >
           <CircleChevronRight size={25} className="text-gray-500 hover:text-green-600 transition-colors" />
         </button>
       </div>
-       {/* PRODUCT CAROUSEL */}
-         <div className="relative bg-white rounded-xs mt-10 shadow-md p-3 sm:p-5 border border-gray-200">
+         {/* PRODUCT CAROUSEL */}
+        <div className="relative bg-white rounded-xs mt-10 shadow-md p-3 sm:p-5 border border-gray-200">
        <div className="flex justify-between w-full border-b border-gray-200 pb-5">
         <div className="font-semibold pl-5" >
          Trái Cây Tươi Ngon
@@ -214,80 +273,27 @@ const scroll = (direction: "left" | "right") => {
 
         <button
           onClick={() => scroll("left")}
-          className="hidden sm:flex absolute left-0 top-1/2 -translate-y-1/2 w-10 h-10 items-center justify-center z-10"
+          className="hidden hover:cursor-pointer sm:flex absolute left-0 top-175 -translate-y-1/2 w-10 h-10 items-center justify-center z-10"
         >
           <CircleChevronLeft size={25} className="text-gray-500 hover:text-green-600 transition-colors" />
         </button>
 
         <div
           ref={carouselRef}
-          className="flex gap-2 sm:gap-2 overflow-x-hidden scroll-smooth cursor-pointer no-scrollbar pt-5 pb-2 pl-2 sm:pl-0 pr-2 sm:pr-0"
+          className="flex gap-2 sm:gap-5 overflow-x-hidden scroll-smooth cursor-pointer no-scrollbar pt-5 pb-2 pl-2 sm:pl-0 pr-2 sm:pr-0"
         >
           {products.map((p) => <ProductCard key={p.id} product={p} />)}
         </div>
          <div
           ref={carouselRef}
-          className="flex gap-2 sm:gap-2 overflow-x-hidden scroll-smooth cursor-pointer no-scrollbar pt-5 pb-2 pl-2 sm:pl-0 pr-2 sm:pr-0"
+          className="flex gap-2 sm:gap-5 overflow-x-hidden scroll-smooth cursor-pointer no-scrollbar pt-5 pb-2 pl-2 sm:pl-0 pr-2 sm:pr-0"
         >
           {products.map((p) => <ProductCard key={p.id} product={p} />)}
         </div>
         
         <button
           onClick={() => scroll("right")}
-          className="hidden sm:flex absolute right-0 top-1/2 -translate-y-1/2 w-10 h-10 items-center justify-center z-10"
-        >
-          <CircleChevronRight size={25} className="text-gray-500 hover:text-green-600 transition-colors" />
-        </button>
-      </div>
-       {/* PRODUCT CAROUSEL */}
-   <div className="relative bg-white rounded-xs mt-10 shadow-md p-3 sm:p-5 border border-gray-200">
-       <div className="flex justify-between w-full border-b border-gray-200 pb-5">
-        <div className="font-semibold pl-5" >
-         Trái Cây Tươi Ngon
-        </div>
-        <div className="flex font-semibold gap-8 w-[50%]">
-          <a href="">Nội địa</a>
-          <a href="">Nội địa</a>
-          <a href="">Nội địa</a>
-        </div>
-        <div className="flex font-semibold items-center">
-          <a href="">Xem All</a>
-          <ChevronRight  size={16}/>
-        </div>
-       </div>
-     <div className="w-full mt-5 h-[198px] rounded-full overflow-hidden relative">
-  <a href="" className="block w-full h-full rounded-full">
-    <div
-      className="w-full h-full bg-center bg-cover"
-      style={{ backgroundImage: "url('/sp/1.jpg')" }}
-    ></div>
-  </a>
-</div>
-
-
-        <button
-          onClick={() => scroll("left")}
-          className="hidden sm:flex absolute left-0 top-1/2 -translate-y-1/2 w-10 h-10 items-center justify-center z-10"
-        >
-          <CircleChevronLeft size={25} className="text-gray-500 hover:text-green-600 transition-colors" />
-        </button>
-
-        <div
-          ref={carouselRef}
-          className="flex gap-2 sm:gap-2 overflow-x-hidden scroll-smooth cursor-pointer no-scrollbar pt-5 pb-2 pl-2 sm:pl-0 pr-2 sm:pr-0"
-        >
-          {products.map((p) => <ProductCard key={p.id} product={p} />)}
-        </div>
-         <div
-          ref={carouselRef}
-          className="flex gap-2 sm:gap-2 overflow-x-hidden scroll-smooth cursor-pointer no-scrollbar pt-5 pb-2 pl-2 sm:pl-0 pr-2 sm:pr-0"
-        >
-          {products.map((p) => <ProductCard key={p.id} product={p} />)}
-        </div>
-        
-        <button
-          onClick={() => scroll("right")}
-          className="hidden sm:flex absolute right-0 top-1/2 -translate-y-1/2 w-10 h-10 items-center justify-center z-10"
+          className="hidden hover:cursor-pointer sm:flex absolute top-175  right-0 -translate-y-1/2 w-10 h-10 items-center justify-center z-10"
         >
           <CircleChevronRight size={25} className="text-gray-500 hover:text-green-600 transition-colors" />
         </button>
