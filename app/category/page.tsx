@@ -395,8 +395,7 @@ const [showFilter, setShowFilter] = useState(false);
         <div className="flex-1">
 
           {/* ============ NAVBAR LỌC + SEARCH ============ */}
-          <div className=" z-40 bg-white rounded-sm shadow-md p-4 mb-5 flex-row sm:flex-row sm:flex-wrap items-start sm:items-center gap-3">
-
+          <div className="top-[150px] z-40 bg-white rounded-sm  shadow-md p-4 mb-5 flex flex-wrap items-center justify-between gap-4">
 
             <input
               type="text"
@@ -404,21 +403,21 @@ const [showFilter, setShowFilter] = useState(false);
               className="shadow-md rounded-lg px-4 py-2 w-[260px] focus:outline-[#0a923c]"
             />
 
-            <select className="hover:bg-[#0a923c] hover:text-white hover:cursor-pointer shadow-md rounded-lg px-3 py-2">
-              <option  value="">Danh mục</option>
+            <select className="shadow-md rounded-lg px-3 py-2">
+              <option value="">Danh mục</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
 
-            <select className="hover:bg-[#0a923c] hover:text-white hover:cursor-pointer shadow-md rounded-lg px-3 py-2">
+            <select className="shadow-md rounded-lg px-3 py-2">
               <option value="">Thương hiệu</option>
               {brands.map((b) => (
                 <option key={b.id} value={b.id}>{b.name}</option>
               ))}
             </select>
 
-            <select className="hover:bg-[#0a923c] hover:text-white hover:cursor-pointer shadow-md rounded-lg px-3 py-2">
+            <select className="shadow-md rounded-lg px-3 py-2">
               <option value="">Sắp xếp</option>
               <option value="priceAsc">Giá tăng dần</option>
               <option value="priceDesc">Giá giảm dần</option>

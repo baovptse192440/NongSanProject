@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Package,
   Users,
+  UserCircle,
   Truck,
   ShoppingBag,
   BarChart3,
@@ -19,6 +20,8 @@ import {
   FolderTree,
   ChevronLeft,
   ChevronRight,
+  List,
+  Globe,
 } from "lucide-react";
 import Tooltip from "@/app/common/Tooltip";
 
@@ -28,20 +31,26 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    if (typeof window === "undefined") return false;
-    try {
-      const saved = localStorage.getItem("sidebarCollapsed");
-      return saved ? JSON.parse(saved) : false;
-    } catch {
-      return false;
-    }
-  });
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
 
-  // Check if desktop on mount and window resize
+  // Initialize from localStorage and check desktop on mount
   useEffect(() => {
+    setMounted(true);
+    
+    // Load sidebar state from localStorage
+    try {
+      const saved = localStorage.getItem("sidebarCollapsed");
+      if (saved) {
+        setSidebarCollapsed(JSON.parse(saved));
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+
+    // Check if desktop
     const checkDesktop = () => {
       setIsDesktop(window.innerWidth >= 1024);
     };
@@ -52,10 +61,10 @@ export default function AdminLayout({
 
   // Save collapsed state to localStorage
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    if (mounted && typeof window !== "undefined") {
       localStorage.setItem("sidebarCollapsed", JSON.stringify(sidebarCollapsed));
     }
-  }, [sidebarCollapsed]);
+  }, [sidebarCollapsed, mounted]);
 
   const menuItems = [
     {
@@ -69,6 +78,12 @@ export default function AdminLayout({
       icon: FolderTree,
       href: "/admin/categories",
       active: pathname?.startsWith("/admin/categories"),
+    },
+    {
+      title: "Menu",
+      icon: List,
+      href: "/admin/menu",
+      active: pathname?.startsWith("/admin/menu"),
     },
     {
       title: "Sản phẩm",
@@ -89,6 +104,12 @@ export default function AdminLayout({
       active: pathname?.startsWith("/admin/supply"),
     },
     {
+      title: "Người dùng",
+      icon: UserCircle,
+      href: "/admin/users",
+      active: pathname?.startsWith("/admin/users"),
+    },
+    {
       title: "Khách hàng",
       icon: Users,
       href: "/admin/customers",
@@ -99,6 +120,12 @@ export default function AdminLayout({
       icon: BarChart3,
       href: "/admin/analytics",
       active: pathname?.startsWith("/admin/analytics"),
+    },
+    {
+      title: "Cấu hình",
+      icon: Globe,
+      href: "/admin/config",
+      active: pathname?.startsWith("/admin/config"),
     },
     {
       title: "Cài đặt",
@@ -122,34 +149,43 @@ export default function AdminLayout({
       >
         {/* LOGO & TOGGLE */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-[#0a923c] min-h-18">
-          <AnimatePresence mode="wait">
-            {!sidebarCollapsed ? (
-              <motion.div
-                key="logo-full"
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: "auto" }}
-                exit={{ opacity: 0, width: 0 }}
-                transition={{ duration: 0.2 }}
-                className="flex items-center gap-2 overflow-hidden"
-              >
-                <Store className="w-6 h-6 text-white shrink-0" />
-                <span className="text-white font-bold text-lg whitespace-nowrap">
-                  Admin Panel
-                </span>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="logo-icon"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="flex items-center justify-center w-full"
-              >
-                <Store className="w-6 h-6 text-white" />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {mounted ? (
+            <AnimatePresence mode="wait">
+              {!sidebarCollapsed ? (
+                <motion.div
+                  key="logo-full"
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: "auto" }}
+                  exit={{ opacity: 0, width: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex items-center gap-2 overflow-hidden"
+                >
+                  <Store className="w-6 h-6 text-white shrink-0" />
+                  <span className="text-white font-bold text-lg whitespace-nowrap">
+                    Admin Panel
+                  </span>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="logo-icon"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex items-center justify-center w-full"
+                >
+                  <Store className="w-6 h-6 text-white" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          ) : (
+            <div className="flex items-center gap-2 overflow-hidden">
+              <Store className="w-6 h-6 text-white shrink-0" />
+              <span className="text-white font-bold text-lg whitespace-nowrap">
+                Admin Panel
+              </span>
+            </div>
+          )}
           <button
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden text-white hover:bg-white/20 p-1 rounded transition-colors shrink-0"
@@ -178,19 +214,24 @@ export default function AdminLayout({
                 onClick={() => setSidebarOpen(false)}
               >
                 <Icon size={20} strokeWidth={2} className="shrink-0" />
-                <AnimatePresence>
-                  {!sidebarCollapsed && (
-                    <motion.span
-                      initial={{ opacity: 0, width: 0 }}
-                      animate={{ opacity: 1, width: "auto" }}
-                      exit={{ opacity: 0, width: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="whitespace-nowrap overflow-hidden"
-                    >
-                      {item.title}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
+                {mounted && (
+                  <AnimatePresence>
+                    {!sidebarCollapsed && (
+                      <motion.span
+                        initial={{ opacity: 0, width: 0 }}
+                        animate={{ opacity: 1, width: "auto" }}
+                        exit={{ opacity: 0, width: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="whitespace-nowrap overflow-hidden"
+                      >
+                        {item.title}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                )}
+                {!mounted && !sidebarCollapsed && (
+                  <span className="whitespace-nowrap overflow-hidden">{item.title}</span>
+                )}
               </Link>
             );
 
@@ -206,15 +247,34 @@ export default function AdminLayout({
 
         {/* USER SECTION */}
         <div className="p-4 border-t border-gray-200">
-          <AnimatePresence>
-            {!sidebarCollapsed && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2 }}
-                className="flex items-center gap-3 mb-3 px-2 overflow-hidden"
-              >
+          {mounted ? (
+            <AnimatePresence>
+              {!sidebarCollapsed && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex items-center gap-3 mb-3 px-2 overflow-hidden"
+                >
+                  <div className="w-10 h-10 rounded-full bg-[#0a923c] flex items-center justify-center text-white font-semibold shrink-0">
+                    A
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">
+                      Admin
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      admin@example.com
+                    </p>
+                  </div>
+                  
+                </motion.div>
+              )}
+            </AnimatePresence>
+          ) : (
+            !sidebarCollapsed && (
+              <div className="flex items-center gap-3 mb-3 px-2 overflow-hidden">
                 <div className="w-10 h-10 rounded-full bg-[#0a923c] flex items-center justify-center text-white font-semibold shrink-0">
                   A
                 </div>
@@ -226,10 +286,13 @@ export default function AdminLayout({
                     admin@example.com
                   </p>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          {sidebarCollapsed ? (
+              </div>
+            )
+          )}
+          
+        </div>
+
+        {sidebarCollapsed ? (
             <Tooltip content="Đăng xuất" side="right">
               <Link
                 href="/"
@@ -247,7 +310,6 @@ export default function AdminLayout({
               <span>Đăng xuất</span>
             </Link>
           )}
-        </div>
 
       </motion.aside>
 
