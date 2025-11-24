@@ -6,6 +6,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import Header from "../../common/header";
 import Footer from "../../common/footer";
+import Product from "../../common/product";
 import {
   ShoppingCart,
   Star,
@@ -52,12 +53,12 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
   const [quantity, setQuantity] = useState(1);
 
   return (
-    <div className="min-h-screen mt-10 bg-[#f5f5f7] md:mt-32">
+    <div className="min-h-screen mt-10 bg-[#eeeeee] md:mt-32">
       <Header />
 
       {/* Breadcrumb */}
-      <div className="hidden md:flex bg-white border-b border-gray-200 shadow-sm">
-        <div className="container mx-auto px-4 py-2">
+      <div className="hidden md:flex  bg-[#e6e6e6] border-b border-gray-200 shadow-sm">
+        <div className="container mx-auto px-4 py-3">
           <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
             <Link href="/" className="hover:text-green-600 font-medium">Trang chủ</Link>
             <span>/</span>
@@ -68,12 +69,12 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6">
+      <div className="container bg-white rounded-sm  mx-auto  py-5">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* LEFT - IMAGES */}
           <div className="w-full lg:w-[500px] lg:sticky lg:top-[100px] space-y-4">
             <motion.div
-              className="relative w-full h-[350px] sm:h-[400px] lg:h-[500px] rounded-lg overflow-hidden border border-gray-200 bg-white shadow"
+              className="relative w-full h-[350px] sm:h-[400px] lg:h-[500px] rounded-xs overflow-hidden border border-gray-200 bg-white shadow"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5 }}
@@ -96,7 +97,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                   key={i}
                   onClick={() => setSelectedImage(i)}
                   whileHover={{ scale: 1.05 }}
-                  className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 shrink-0 transition-all shadow-sm ${
+                  className={`relative hover:cursor-pointer w-16 h-16 sm:w-20 sm:h-20  overflow-hidden border shrink-0 transition-all shadow-sm ${
                     selectedImage === i ? "border-green-600 shadow-md" : "border-gray-200 hover:border-gray-300"
                   }`}
                 >
@@ -111,12 +112,12 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
             <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{product.name}</h1>
 
             <div className="flex flex-wrap gap-2 items-center text-gray-600 text-sm">
-              <div className="flex items-center gap-0.5">
+              <div className="flex items-center gap-0">
                 {[...Array(5)].map((_, i) => (
                   <Star
                     key={i}
-                    size={14}
-                    className={i < Math.floor(product.rating) ? "fill-yellow-400" : "text-gray-300"}
+                    size={20}
+                    className={i < Math.floor(product.rating) ? "fill-yellow-400 text-white" : "fill-yellow-400 text-white"}
                   />
                 ))}
                 <span>{product.rating}</span>
@@ -124,9 +125,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
               <div className="flex items-center gap-1 text-gray-500">
                 <TrendingUp className="w-3 h-3 text-green-600" strokeWidth={1} /> {product.sold} đã bán
               </div>
-              <div>
-                <span className="text-green-600 font-semibold">{product.stock}</span> có sẵn
-              </div>
+              
             </div>
 
             <div className="flex flex-wrap items-baseline gap-2 py-2 border-b border-gray-200">
@@ -137,47 +136,73 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
               </span>
             </div>
 
-            <p className="text-gray-700 text-sm">{product.description}</p>
+          
 
-            <div className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm text-sm">
-              <h3 className="font-semibold mb-2">Thông tin sản phẩm</h3>
-              <div className="space-y-1">
-                {Object.entries(product.specifications).map(([key, value]) => (
-                  <div key={key} className="flex justify-between">
-                    <span className="font-medium">{key}:</span>
-                    <span className="font-semibold">{value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <div className="space-y-4 text-sm text-gray-700">
 
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
-              <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden text-sm">
-                <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="px-3 py-1 hover:bg-gray-50">
-                  <Minus size={14} />
-                </button>
-                <span className="px-3 py-1 text-center font-semibold min-w-[40px]">{quantity}</span>
-                <button onClick={() => setQuantity(Math.min(product.stock, quantity + 1))} className="px-3 py-1 hover:bg-gray-50">
-                  <Plus size={14} />
-                </button>
-              </div>
+  {/* Mã giảm giá */}
+  <div>
+    <p className="font-medium text-[#858383]">Mã giảm giá</p>
+    <div className="flex gap-2 mt-2">
+      <span className="border border-green-600 text-green-600 px-3 py-1 rounded-md text-xs font-semibold">
+        FreeShip
+      </span>
+      <span className="border border-green-600 text-green-600 px-3 py-1 rounded-md text-xs font-semibold">
+        Giảm 8%
+      </span>
+    </div>
+  </div>
 
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                className="flex-1 bg-green-600 hover:bg-green-700 cursor-pointer text-white py-2 rounded-lg font-semibold flex items-center justify-center gap-1 shadow-sm text-sm"
-              >
-                <ShoppingCart size={16} /> Thêm vào giỏ hàng
-              </motion.button>
+  {/* Vận chuyển đến */}
+  <div>
+    <p className="font-medium text-[#858383]">
+      Vận chuyển đến:{" "}
+      <span className="text-green-700 font-semibold cursor-pointer">
+        Quận 1 - Tp. HCM
+      </span>
+    </p>
+  </div>
 
-              <div className="flex gap-2">
-                <button className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50">
-                  <Heart size={18} className="text-gray-600" />
-                </button>
-                <button className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50">
-                  <Share2 size={18} className="text-gray-600" />
-                </button>
-              </div>
-            </div>
+  {/* Phí vận chuyển */}
+  <div>
+   <p className="font-medium text-[#858383]">
+      Phí vận chuyển:{" "}
+      <span className="text-green-700 font-semibold">35.000 đ</span>
+    </p>
+  </div>
+
+  {/* Đóng gói */}
+  <div>
+    <p className="font-medium text-[#858383]">Đóng Gói:</p>
+    <button className="hover:cursor-pointer mt-2 border border-green-700 text-green-700 px-4 py-1 rounded-md flex items-center gap-2">
+      <span className="w-3 h-3 rounded-full bg-green-700 inline-block"></span>
+      Thùng
+    </button>
+  </div>
+
+  {/* Số lượng */}
+  <div>
+    <p className="font-medium text-[#858383] mb-2">Số lượng:</p>
+    <div className="flex w-32 h-10 border border-gray-300 rounded-xs overflow-hidden">
+      <button className="flex items-center justify-center w-10 bg-gray-200 text-xl hover:cursor-pointer">-</button>
+      <div className="flex-1 flex items-center justify-center border-x border-gray-300">1</div>
+      <button className="flex items-center justify-center w-10 bg-gray-200 text-xl hover:cursor-pointer">+</button>
+    </div>
+  </div>
+
+  {/* Nút hành động */}
+  <div className="flex gap-3 pt-2">
+    <button className="flex-1 border border-green-700 text-green-700 py-3  font-semibold hover:bg-green-50 cursor-pointer">
+      THÊM VÀO GIỎ HÀNG
+    </button>
+    <button className="flex-1 bg-green-700 text-white py-3 font-semibold hover:bg-green-800 cursor-pointer">
+      MUA NGAY
+    </button>
+  </div>
+
+</div>
+
+
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-4 border-t border-gray-200 text-sm">
               <div className="flex items-center gap-2">
@@ -210,8 +235,61 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
             </div>
           </div>
         </div>
+        
       </div>
+      {/* THÔNG TIN SẢN PHẨM */}
+<motion.div
+  initial={{ opacity: 0, y: 30 }}
+  whileInView={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.5 }}
+  viewport={{ once: true }}
+  className="container pl-0 bg-white rounded-sm mt-10 mx-auto py-0 px-0"
+>
+  <div className="bg-white border-gray-200 rounded-sm">
+    
+    {/* TIÊU ĐỀ ĐÃ CHỈNH */}
+    <div className="bg-[#10723a] inline-block px-4 py-2 ">
+      <h2 className="text-white  text-lg font-semibold">
+        Thông tin sản phẩm
+      </h2>
+    </div>
+    
+    <div className="border-t border-[#e8f5e9] space-y-4 text-gray-700 leading-relaxed p-2 px-2">
+    <h1 className="text-2xl font-semibold text-black">
+      Cam Nam Phi tươi ngon
+    </h1>
+      <p>
+        Cam Nam Phi tươi ngon, mọng nước, giàu vitamin C — lựa chọn tuyệt vời cho
+        những bữa ăn bổ dưỡng và thanh mát mỗi ngày.
+      </p>
 
+      <img
+        src="/sp/1.jpg"
+        className="w-[50%]  shadow"
+        alt="Thông tin hình 1"
+      />
+
+      <p>
+        
+        Sản phẩm được tuyển chọn kỹ lưỡng, đảm bảo độ tươi, độ ngọt và độ mọng
+        nước. Hoàn toàn phù hợp để ép nước, ăn trực tiếp hoặc làm salad.
+      </p>
+
+      <img
+        src="/sp/1.jpg"
+        className="w-[50%]  shadow"
+        alt="Thông tin hình 2"
+      />
+
+      <p>
+        Hàng nhập khẩu trực tiếp từ Nam Phi, được bảo quản theo quy trình đúng chuẩn,
+        đảm bảo chất lượng và an toàn sức khỏe cho người dùng.
+      </p>
+    </div>
+  </div>
+</motion.div>
+
+   
       <Footer />
     </div>
   );
