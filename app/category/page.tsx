@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import Agrishow from "../common/AgrishowSection";
@@ -95,7 +96,8 @@ interface ApiResponse {
   totalPages: number;
 }
 
-export default function CategoryPage() {
+function CategoryPageContent() {
+  const searchParams = useSearchParams();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [currentPage, setCurrentPage] = useState(1);
   const [showSort, setShowSort] = useState(false);
@@ -103,7 +105,7 @@ export default function CategoryPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedBrand, setSelectedBrand] = useState<string>("");
   const [sortBy, setSortBy] = useState<string>("newest");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -117,6 +119,15 @@ export default function CategoryPage() {
   const [minRating, setMinRating] = useState<string>("");
   const [filterOnSale, setFilterOnSale] = useState<boolean>(false);
   const [filterInStock, setFilterInStock] = useState<boolean>(false);
+
+  // Update searchQuery from URL on mount and when URL changes
+  useEffect(() => {
+    const urlSearch = searchParams.get("search") || "";
+    if (urlSearch !== searchQuery) {
+      setSearchQuery(urlSearch);
+      setCurrentPage(1); // Reset to first page when search changes
+    }
+  }, [searchParams, searchQuery]);
 
   // Fetch categories from API
   useEffect(() => {
@@ -609,6 +620,48 @@ export default function CategoryPage() {
 
           {/* MAIN CONTENT */}
           <div className="flex-1">
+            {/* Mobile Search Bar */}
+            <div className="lg:hidden bg-white md:rounded-sm rounded-none md:shadow-md shadow-none p-3 md:mb-4 mb-2">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (searchQuery.trim()) {
+                    window.location.href = `/category?search=${encodeURIComponent(searchQuery.trim())}`;
+                  } else {
+                    window.location.href = `/category`;
+                  }
+                  setCurrentPage(1);
+                }}
+              >
+                <div className="flex gap-2">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search products..."
+                      className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0a923c] focus:border-transparent"
+                    />
+                  </div>
+                  {searchQuery && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        setSearchQuery("");
+                        window.location.href = `/category`;
+                      }}
+                      className="shrink-0"
+                    >
+                      <X size={16} />
+                    </Button>
+                  )}
+                </div>
+              </form>
+            </div>
+
             {/* Mobile Filter/Sort Bar */}
             <div className="lg:hidden bg-white md:rounded-sm rounded-none md:shadow-md shadow-none p-3 md:mb-4 mb-2 flex justify-between items-center gap-2 dropdown-container">
               <div className="relative flex-1">
@@ -673,6 +726,51 @@ export default function CategoryPage() {
             {/* Filter Bar - Desktop */}
             <div className="hidden lg:block space-y-4 mb-5">
               {/* Search Bar */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (searchQuery.trim()) {
+                      window.location.href = `/category?search=${encodeURIComponent(searchQuery.trim())}`;
+                    } else {
+                      window.location.href = `/category`;
+                    }
+                    setCurrentPage(1);
+                  }}
+                >
+                  <div className="flex gap-2">
+                    <div className="flex-1 relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search products..."
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0a923c] focus:border-transparent"
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      className="bg-[#0a923c] hover:bg-[#04772f] text-white px-6"
+                    >
+                      Search
+                    </Button>
+                    {searchQuery && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setSearchQuery("");
+                          window.location.href = `/category`;
+                        }}
+                        className="px-4"
+                      >
+                        <X size={16} />
+                      </Button>
+                    )}
+                  </div>
+                </form>
+              </div>
 
               {/* Filters Row */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
@@ -825,5 +923,17 @@ export default function CategoryPage() {
 
       <Agrishow />
     </div>
+  );
+}
+
+export default function CategoryPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[#0a923c]" />
+      </div>
+    }>
+      <CategoryPageContent />
+    </Suspense>
   );
 }

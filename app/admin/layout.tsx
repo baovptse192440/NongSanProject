@@ -287,8 +287,14 @@ export default function AdminLayout({
         localStorage.removeItem("sidebarCollapsed");
         // Keep darkMode preference if needed, or remove it too
         // localStorage.removeItem("darkMode");
+        
+        // Clear cookie if exists (for backward compatibility)
+        document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        
+        // Dispatch event to notify other components
+        window.dispatchEvent(new Event("userLoggedOut"));
       }
-      // Redirect to login
+      // Force redirect to login
       window.location.href = "/login";
     }
   };

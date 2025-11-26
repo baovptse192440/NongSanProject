@@ -80,36 +80,56 @@ export default function OrderDetailPage() {
   const orderId = params?.id as string;
 
   useEffect(() => {
-    if (orderId) {
-      fetchOrder();
-    }
-  }, [orderId]);
+    if (!orderId) return;
 
-  const fetchOrder = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-      const response = await fetch(`/api/orders/${orderId}`, {
-        headers: {
-          "Authorization": token ? `Bearer ${token}` : "",
-        },
-      });
-      const result = await response.json();
+    let isMounted = true;
 
-      if (result.success) {
-        setOrder(result.data);
-      } else {
-        toast.error("Error", result.error || "Failed to fetch order");
-        router.push("/profile?tab=orders");
+    const fetchOrder = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem("token");
+        if (!token) {
+          if (isMounted) {
+            router.push("/login?redirect=/profile");
+          }
+          return;
+        }
+
+        const response = await fetch(`/api/orders/${orderId}`, {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+        });
+        const result = await response.json();
+
+        if (!isMounted) return;
+
+        if (result.success) {
+          setOrder(result.data);
+        } else {
+          toast.error("Error", result.error || "Failed to fetch order");
+          router.push("/profile");
+        }
+      } catch (error) {
+        console.error("Error fetching order:", error);
+        if (isMounted) {
+          toast.error("Error", "Failed to load order");
+          router.push("/profile");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-    } catch (error) {
-      console.error("Error fetching order:", error);
-      toast.error("Error", "Failed to load order");
-      router.push("/profile?tab=orders");
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    fetchOrder();
+
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderId]);
 
   const formatDate = (dateString: string) => {
     try {

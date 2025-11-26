@@ -45,7 +45,9 @@ export async function GET(
     }
 
     // Check if order belongs to the user
-    if (order.userId !== decoded.userId) {
+    const orderUserId = order.userId?.toString();
+    const decodedUserId = decoded.userId?.toString();
+    if (orderUserId !== decodedUserId) {
       return NextResponse.json(
         { success: false, error: "Access denied" },
         { status: 403 }

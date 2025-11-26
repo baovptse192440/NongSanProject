@@ -49,25 +49,65 @@ export async function POST(request: NextRequest) {
       status: "active",
       emailVerified: false,
     });
+    
+    // Handle both array and single document cases
+    const userDoc = Array.isArray(newUser) ? newUser[0] : newUser;
+    const userObj: {
+      _id?: { toString(): string } | string;
+      email: string;
+      fullName: string;
+      phone?: string;
+      role: string;
+      address?: string;
+      city?: string;
+      state?: string;
+      zipCode?: string;
+      country?: string;
+      avatar?: string;
+      dateOfBirth?: Date;
+      gender?: string;
+      status: string;
+      emailVerified?: boolean;
+      createdAt?: Date;
+    } = userDoc.toObject ? userDoc.toObject() : (userDoc as {
+      _id?: { toString(): string } | string;
+      email: string;
+      fullName: string;
+      phone?: string;
+      role: string;
+      address?: string;
+      city?: string;
+      state?: string;
+      zipCode?: string;
+      country?: string;
+      avatar?: string;
+      dateOfBirth?: Date;
+      gender?: string;
+      status: string;
+      emailVerified?: boolean;
+      createdAt?: Date;
+    });
+    
+    const userId = userObj._id?.toString() || "";
 
     // Generate JWT token for session
     const token = generateToken({
-      userId: newUser._id.toString(),
-      email: newUser.email,
-      role: newUser.role,
+      userId,
+      email: userObj.email,
+      role: userObj.role,
     });
 
     // Generate verification token for email
     const verificationToken = generateToken({
-      userId: newUser._id.toString(),
-      email: newUser.email,
-      role: newUser.role,
+      userId,
+      email: userObj.email,
+      role: userObj.role,
     });
 
     // Send verification email
     try {
       const { sendVerificationEmail } = await import("@/lib/email");
-      await sendVerificationEmail(newUser.email, verificationToken);
+      await sendVerificationEmail(userObj.email, verificationToken);
     } catch (error) {
       console.error("Error sending verification email:", error);
       // Don't fail registration if email fails
@@ -75,26 +115,26 @@ export async function POST(request: NextRequest) {
 
     // Return user without password
     const formattedUser = {
-      id: newUser._id.toString(),
-      email: newUser.email,
-      fullName: newUser.fullName,
-      phone: newUser.phone || "",
-      role: newUser.role,
-      address: newUser.address || "",
-      city: newUser.city || "",
-      state: newUser.state || "",
-      zipCode: newUser.zipCode || "",
-      country: newUser.country || "",
-      avatar: newUser.avatar || "",
-      dateOfBirth: newUser.dateOfBirth?.toISOString() || null,
-      gender: newUser.gender || null,
-      status: newUser.status,
-      emailVerified: newUser.emailVerified || false,
-      createdAt: newUser.createdAt?.toISOString(),
+      id: userId,
+      email: userObj.email,
+      fullName: userObj.fullName,
+      phone: userObj.phone || "",
+      role: userObj.role,
+      address: userObj.address || "",
+      city: userObj.city || "",
+      state: userObj.state || "",
+      zipCode: userObj.zipCode || "",
+      country: userObj.country || "",
+      avatar: userObj.avatar || "",
+      dateOfBirth: userObj.dateOfBirth?.toISOString() || null,
+      gender: userObj.gender || null,
+      status: userObj.status,
+      emailVerified: userObj.emailVerified || false,
+      createdAt: userObj.createdAt?.toISOString(),
     };
 
-    // Create response with cookie
-    const response = NextResponse.json(
+    // Return response with token (client will store in localStorage)
+    return NextResponse.json(
       {
         success: true,
         data: formattedUser,
@@ -103,16 +143,6 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
-
-    // Set HTTP-only cookie
-    response.cookies.set("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-    });
-
-    return response;
   } catch (error: any) {
     console.error("Error registering user:", error);
 

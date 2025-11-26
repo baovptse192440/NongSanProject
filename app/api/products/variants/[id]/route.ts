@@ -57,18 +57,18 @@ export async function PUT(
     existingVariant.onSale = onSale || false;
     existingVariant.status = status || existingVariant.status;
 
-    if (sku !== undefined) existingVariant.sku = sku || null;
-    if (weight !== undefined) existingVariant.weight = weight ? parseFloat(weight) : null;
+    if (sku !== undefined) existingVariant.sku = sku || undefined;
+    if (weight !== undefined) existingVariant.weight = weight ? parseFloat(weight) : undefined;
     if (onSale) {
-      existingVariant.salePrice = salePrice ? parseFloat(salePrice) : null;
-      existingVariant.salePercentage = salePercentage ? parseFloat(salePercentage) : null;
-      existingVariant.saleStartDate = saleStartDate ? new Date(saleStartDate) : null;
-      existingVariant.saleEndDate = saleEndDate ? new Date(saleEndDate) : null;
+      existingVariant.salePrice = salePrice ? parseFloat(salePrice) : undefined;
+      existingVariant.salePercentage = salePercentage ? parseFloat(salePercentage) : undefined;
+      existingVariant.saleStartDate = saleStartDate ? new Date(saleStartDate) : undefined;
+      existingVariant.saleEndDate = saleEndDate ? new Date(saleEndDate) : undefined;
     } else {
-      existingVariant.salePrice = null;
-      existingVariant.salePercentage = null;
-      existingVariant.saleStartDate = null;
-      existingVariant.saleEndDate = null;
+      existingVariant.salePrice = undefined;
+      existingVariant.salePercentage = undefined;
+      existingVariant.saleStartDate = undefined;
+      existingVariant.saleEndDate = undefined;
     }
 
     await existingVariant.save();
@@ -96,11 +96,12 @@ export async function PUT(
       data: formattedVariant,
       message: "Cập nhật variant thành công",
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error updating variant:", error);
     
-    if (error.name === "ValidationError") {
-      const errors = Object.values(error.errors).map((err: any) => err.message);
+    if (error instanceof Error && 'name' in error && error.name === "ValidationError" && 'errors' in error) {
+      const validationError = error as { errors: Record<string, { message: string }> };
+      const errors = Object.values(validationError.errors).map((err) => err.message);
       return NextResponse.json(
         { success: false, error: errors.join(", ") },
         { status: 400 }
@@ -108,7 +109,7 @@ export async function PUT(
     }
 
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to update variant" },
+      { success: false, error: error instanceof Error ? error.message : "Failed to update variant" },
       { status: 500 }
     );
   }

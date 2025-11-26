@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Product from "../../common/product";
 import ToastContainer from "../../common/Toast";
@@ -13,9 +13,6 @@ import { Pagination } from "swiper/modules";
 import type { Swiper as SwiperType } from "swiper";
 import {
   Star,
-  Check,
-  Truck,
-  Shield,
   Minus,
   Plus,
   Loader2,
@@ -80,6 +77,7 @@ interface CartItem {
 
 export default function ProductDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const slug = params?.slug as string;
   const { toasts, toast, removeToast } = useToast();
   const [product, setProduct] = useState<ProductData | null>(null);
@@ -139,11 +137,11 @@ export default function ProductDetailPage() {
             }
           }
         } else {
-          setError(result.error || "Không tìm thấy sản phẩm");
+          setError(result.error || "Product not found");
         }
       } catch (err) {
         console.error("Error fetching product:", err);
-        setError("Đã xảy ra lỗi khi tải sản phẩm");
+        setError("An error occurred while loading the product");
       } finally {
         setLoading(false);
       }
@@ -217,7 +215,7 @@ export default function ProductDetailPage() {
         <div className="flex items-center justify-center py-40">
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
-            <p className="text-sm text-gray-600">Đang tải sản phẩm...</p>
+            <p className="text-sm text-gray-600">Loading product...</p>
           </div>
         </div>
       </div>
@@ -232,12 +230,12 @@ export default function ProductDetailPage() {
         </div>
         <div className="container mx-auto px-4 py-20">
           <div className="bg-white rounded-sm shadow-md border border-gray-200 p-12 text-center">
-            <p className="text-red-600 text-lg mb-2">{error || "Không tìm thấy sản phẩm"}</p>
+            <p className="text-red-600 text-lg mb-2">{error || "Product not found"}</p>
             <Link
               href="/category"
               className="text-green-600 hover:underline font-medium"
             >
-              Quay lại danh sách sản phẩm
+              Back to product list
             </Link>
           </div>
         </div>
@@ -352,7 +350,7 @@ export default function ProductDetailPage() {
         const newQuantity = existingItem.quantity + quantity;
         
         if (newQuantity > currentStock) {
-          toast.error("Lỗi", `Chỉ có thể thêm tối đa ${currentStock} sản phẩm vào giỏ hàng`);
+          toast.error("Error", `Can only add up to ${currentStock} products to cart`);
           setAddingToCart(false);
           return;
         }
@@ -392,17 +390,83 @@ export default function ProductDetailPage() {
 
       // Show success toast
       toast.success(
-        "Thành công",
-        `Đã thêm ${quantity} sản phẩm vào giỏ hàng`
+        "Success",
+        `Added ${quantity} product${quantity > 1 ? 's' : ''} to cart`
       );
 
       // Reset quantity after adding
       setQuantity(1);
     } catch (error) {
       console.error("Error adding to cart:", error);
-      toast.error("Lỗi", "Không thể thêm sản phẩm vào giỏ hàng");
+      toast.error("Error", "Could not add product to cart");
     } finally {
       setAddingToCart(false);
+    }
+  };
+
+  // Buy now function - Add to cart and redirect to checkout
+  const handleBuyNow = () => {
+    if (!product) return;
+    
+    // Validate: if has variants, must select one
+    if (variants.length > 0 && !selectedVariant) {
+      toast.error("Lỗi", "Vui lòng chọn biến thể sản phẩm");
+      return;
+    }
+
+    // Validate stock
+    if (currentStock === 0) {
+      toast.error("Lỗi", "Sản phẩm đã hết hàng");
+      return;
+    }
+
+    if (quantity > currentStock) {
+      toast.error("Lỗi", `Chỉ còn ${currentStock} sản phẩm trong kho`);
+      return;
+    }
+
+    try {
+      // Create cart item
+      const cartItemId = selectedVariant 
+        ? `${product.id}-${selectedVariant.id}`
+        : product.id;
+
+      // Use wholesale price as default
+      const wholesalePrice = selectedVariant 
+        ? selectedVariant.wholesalePrice
+        : product.wholesalePrice;
+      
+      const newItem: CartItem = {
+        id: cartItemId,
+        productId: product.id,
+        name: product.name,
+        slug: product.slug,
+        image: product.images && product.images.length > 0 ? product.images[0] : "/sp/1.jpg",
+        price: wholesalePrice,
+        oldPrice: finalPrice > wholesalePrice ? finalPrice : undefined,
+        quantity: quantity,
+        variantId: selectedVariant?.id,
+        variantName: selectedVariant?.name,
+        stock: currentStock,
+      };
+
+      // For "Buy Now", we replace the entire cart with just this item
+      const buyNowCart: CartItem[] = [newItem];
+
+      // Save to localStorage
+      localStorage.setItem("cart", JSON.stringify(buyNowCart));
+
+      // Dispatch event to update cart count in header
+      window.dispatchEvent(new Event("cartUpdated"));
+
+      // Close bottom sheet if open
+      setShowBottomSheet(false);
+
+      // Redirect to checkout
+      router.push("/checkout");
+    } catch (error) {
+      console.error("Error in buy now:", error);
+      toast.error("Error", "Could not proceed with buy now");
     }
   };
 
@@ -446,7 +510,7 @@ export default function ProductDetailPage() {
       <div className="md:flex overflow-x-auto bg-[#e6e6e6] border-gray-200 hidden">
         <div className="container mx-auto px-4 py-3 overflow-x-auto">
           <div className="flex items-center gap-2 text-sm text-gray-600 overflow-x-auto">
-            <Link href="/" className="hover:text-green-600">Trang chủ</Link>
+            <Link href="/" className="hover:text-green-600">Home</Link>
             <span>/</span>
             {product.categoryName ? (
               <>
@@ -460,7 +524,7 @@ export default function ProductDetailPage() {
               </>
             ) : (
               <>
-                <Link href="/category" className="hover:text-green-600">Sản phẩm</Link>
+                <Link href="/category" className="hover:text-green-600">Products</Link>
                 <span>/</span>
               </>
             )}
@@ -533,7 +597,7 @@ export default function ProductDetailPage() {
                 </div>
               ) : (
                 <div className="relative w-full h-[350px] sm:h-[400px] rounded-xs overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center">
-                  <span className="text-gray-400">Không có hình ảnh</span>
+                  <span className="text-gray-400">No image available</span>
                 </div>
               )}
             </div>
@@ -552,7 +616,7 @@ export default function ProductDetailPage() {
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                    <span className="text-gray-400">Không có hình ảnh</span>
+                    <span className="text-gray-400">No image available</span>
                   </div>
                 )}
                 {discount > 0 && (
@@ -602,7 +666,7 @@ export default function ProductDetailPage() {
                 <span>4.5</span>
               </div>
               <div className="flex items-center gap-1 text-gray-500">
-                707 đã bán
+                707 sold
               </div>
             </div>
 
@@ -624,7 +688,7 @@ export default function ProductDetailPage() {
               </div>
               {getWholesalePrice() > 0 && (
                 <div className="text-sm text-gray-600">
-                  <span className="font-medium">Giá đại lý: </span>
+                  <span className="font-medium">Wholesale price: </span>
                   <span className="text-gray-800 font-semibold">{formatPrice(getWholesalePrice())}</span>
                 </div>
               )}
@@ -632,20 +696,20 @@ export default function ProductDetailPage() {
 
 
             <div className="space-y-4 text-sm text-gray-700 mt-2">
-              {/* Vận chuyển đến */}
+              {/* Ship to */}
               <div>
                 <p className="font-medium text-[#858383]">
-                  Vận chuyển đến:{" "}
+                  Ship to:{" "}
                   <span className="text-green-700 cursor-pointer">
                     Sydney, NSW
                   </span>
                 </p>
               </div>
 
-              {/* Phí vận chuyển */}
+              {/* Shipping fee */}
               <div>
                 <p className="font-medium text-[#858383]">
-                  Phí vận chuyển:{" "}
+                  Shipping fee:{" "}
                   <span className="text-green-700">
                     {formatPrice(shippingConfig.shippingFee)}
                   </span>
@@ -655,10 +719,10 @@ export default function ProductDetailPage() {
                 </p>
               </div>
 
-              {/* Đóng gói - Variants Selection */}
+              {/* Packaging - Variants Selection */}
               {variants.length > 0 ? (
                 <div className="md:block hidden">
-                  <p className="font-medium text-[#858383] mb-3">Đóng Gói:</p>
+                  <p className="font-medium text-[#858383] mb-3">Packaging:</p>
                   <div className="flex flex-wrap gap-2">
                     {variants.map((variant) => {
                       const isSelected = selectedVariant?.id === variant.id;
@@ -691,18 +755,14 @@ export default function ProductDetailPage() {
                   </div>
                 </div>
               ) : (
-                <div className="md:flex items-center gap-2 hidden">
-                  <p className="font-medium text-[#858383]">Đóng Gói:</p>
-                  <button className="hover:cursor-pointer border border-green-700 text-green-700 px-4 py-1 rounded-xs flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-green-700 inline-block"></span>
-                    Thùng
-                  </button>
+                <div >
+  
                 </div>
               )}
 
-              {/* Số lượng */}
+              {/* Quantity */}
               <div className="md:block hidden">
-                <p className="font-medium text-[#858383] mb-2">Số lượng:</p>
+                <p className="font-medium text-[#858383] mb-2">Quantity:</p>
                 <div className="flex w-32 h-10 border border-gray-300 rounded-xs overflow-hidden">
                   <button
                     onClick={() => handleQuantityChange(-1)}
@@ -724,7 +784,7 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
-              {/* Nút hành động */}
+              {/* Action Buttons */}
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => {
@@ -741,17 +801,18 @@ export default function ProductDetailPage() {
                   {addingToCart ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Đang thêm...</span>
+                      <span>Adding...</span>
                     </>
                   ) : (
-                    "THÊM VÀO GIỎ HÀNG"
+                    "ADD TO CART"
                   )}
                 </button>
                 <button
+                  onClick={handleBuyNow}
                   disabled={currentStock === 0 || (variants.length > 0 && !selectedVariant)}
                   className="flex-1 bg-green-700 text-white py-3 font-semibold hover:bg-green-800 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  MUA NGAY
+                  BUY NOW
                 </button>
               </div>
             </div>
@@ -765,9 +826,9 @@ export default function ProductDetailPage() {
       {product.description && (
         <div className="container pl-0 bg-white rounded-sm mt-10 mx-auto py-0 px-0">
           <div className="bg-white border-gray-200 rounded-sm">
-            {/* TIÊU ĐỀ */}
+            {/* TITLE */}
             <div className="bg-[#10723a] inline-block px-4 py-2">
-              <h2 className="text-white text-lg font-semibold">Thông tin sản phẩm</h2>
+              <h2 className="text-white text-lg font-semibold">Product Information</h2>
             </div>
 
             <div className="border-t border-[#e8f5e9] space-y-4 text-gray-700 leading-relaxed p-2 px-2">
@@ -862,7 +923,7 @@ export default function ProductDetailPage() {
                       </div>
                       {getWholesalePrice() > 0 && (
                         <div className="text-sm text-gray-600">
-                          <span className="font-medium">Giá đại lý: </span>
+                          <span className="font-medium">Wholesale price: </span>
                           <span className="text-gray-800 font-semibold">{formatPrice(getWholesalePrice())}</span>
                         </div>
                       )}
@@ -871,9 +932,9 @@ export default function ProductDetailPage() {
                 </div>
 
                 <div className="border-t border-gray-200 pt-4 space-y-4">
-                  {/* Số lượng */}
+                  {/* Quantity */}
                   <div>
-                    <p className="font-medium text-gray-800 mb-3">Số lượng:</p>
+                    <p className="font-medium text-gray-800 mb-3">Quantity:</p>
                     <div className="flex w-32 h-10 border border-gray-300 rounded-xs overflow-hidden">
                       <button
                         onClick={() => handleQuantityChange(-1)}
@@ -895,10 +956,10 @@ export default function ProductDetailPage() {
                     </div>
                   </div>
 
-                  {/* Đóng gói - Variants Selection */}
+                  {/* Packaging - Variants Selection */}
                   {variants.length > 0 ? (
                     <div>
-                      <p className="font-medium text-gray-800 mb-3">Đóng Gói:</p>
+                      <p className="font-medium text-gray-800 mb-3">Packaging:</p>
                       <div className="flex flex-wrap gap-2">
                         {variants.map((variant) => {
                           const isSelected = selectedVariant?.id === variant.id;
@@ -932,64 +993,48 @@ export default function ProductDetailPage() {
                     </div>
                   ) : (
                     <div>
-                      <p className="font-medium text-gray-800 mb-2">Đóng Gói:</p>
+                      <p className="font-medium text-gray-800 mb-2">Packaging:</p>
                       <button className="border border-green-700 text-green-700 px-4 py-2 rounded-xs flex items-center gap-2 hover:bg-green-50 transition-colors">
                         <span className="w-3 h-3 rounded-full bg-green-700"></span>
-                        Thùng
+                        Box
                       </button>
                     </div>
                   )}
 
-                  {/* Mã giảm giá */}
-                  <div>
-                    <p className="font-medium text-gray-800 mb-2">Mã giảm giá:</p>
-                    <div className="flex gap-2">
-                      <span className="border border-green-700 text-green-700 px-3 py-1 rounded-xs text-xs">
-                        FreeShip
-                      </span>
-                      <span className="border border-green-700 text-green-700 px-3 py-1 rounded-xs text-xs">
-                        Giảm 8%
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Tổng tiền */}
+                  {/* Total */}
                   <div className="pt-4 border-t border-gray-200">
                     <div className="flex justify-between items-center mb-4">
-                      <span className="font-medium text-gray-800">Tổng cộng:</span>
+                      <span className="font-medium text-gray-800">Total:</span>
                       <span className="text-xl font-bold text-green-700">
                         {formatPrice(finalPrice * quantity)}
                       </span>
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex gap-3">
+                    <div className="flex gap-2.5">
                       <button
                         onClick={() => {
                           handleAddToCart();
                           setShowBottomSheet(false);
                         }}
                         disabled={currentStock === 0 || (variants.length > 0 && !selectedVariant) || addingToCart}
-                        className="flex-1 bg-green-700 text-white py-3 font-semibold rounded-sm hover:bg-green-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        className="flex-1 bg-green-700 text-white py-2.5 text-sm font-medium rounded-sm hover:bg-green-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
                         {addingToCart ? (
                           <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            <span>Đang thêm...</span>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Adding...</span>
                           </>
                         ) : (
-                          "THÊM VÀO GIỎ HÀNG"
+                          "ADD TO CART"
                         )}
                       </button>
                       <button
-                        onClick={() => {
-                          // Buy now logic
-                          setShowBottomSheet(false);
-                        }}
+                        onClick={handleBuyNow}
                         disabled={currentStock === 0 || (variants.length > 0 && !selectedVariant)}
-                        className="flex-1 border-2 border-green-700 text-green-700 py-3 font-semibold rounded-sm hover:bg-green-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 border-2 border-green-700 text-green-700 py-2.5 text-sm font-medium rounded-sm hover:bg-green-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        MUA NGAY
+                        BUY NOW
                       </button>
                     </div>
                   </div>

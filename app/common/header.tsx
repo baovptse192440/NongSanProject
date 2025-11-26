@@ -15,6 +15,7 @@ import {
   ChevronRight,
   X,
   Bell,
+  LogOut,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 interface SiteConfig {
@@ -56,9 +57,14 @@ export default function Header() {
   const [expandedMenuId, setExpandedMenuId] = useState<string | null>(null);
   const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>(null);
   const [cartCount, setCartCount] = useState(0);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{
+    fullName?: string;
+    email?: string;
+    role?: string;
+  } | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [notifications, setNotifications] = useState<Array<{
     id: string;
     title: string;
@@ -81,27 +87,42 @@ export default function Header() {
   useEffect(() => {
     const loadUser = async () => {
       try {
+        // First check if token exists
         const token = localStorage.getItem("token");
+        if (!token) {
+          setUser(null);
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("user");
+          }
+          return;
+        }
+
         const response = await fetch("/api/auth/me", {
           headers: {
-            "Authorization": token ? `Bearer ${token}` : "",
+            "Authorization": `Bearer ${token}`,
           },
         });
         const result = await response.json();
-        if (result.success) {
+        if (result.success && result.data) {
           setUser(result.data);
           if (typeof window !== "undefined") {
             localStorage.setItem("user", JSON.stringify(result.data));
           }
         } else {
+          // Token invalid or expired
           setUser(null);
           if (typeof window !== "undefined") {
             localStorage.removeItem("user");
+            localStorage.removeItem("token");
           }
         }
       } catch (error) {
         console.error("Error loading user:", error);
         setUser(null);
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("user");
+          localStorage.removeItem("token");
+        }
       }
     };
 
@@ -109,8 +130,8 @@ export default function Header() {
       try {
         const savedCart = localStorage.getItem("cart");
         if (savedCart) {
-          const items = JSON.parse(savedCart);
-          const total = items.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
+          const items: Array<{ quantity?: number }> = JSON.parse(savedCart);
+          const total = items.reduce((sum: number, item: { quantity?: number }) => sum + (item.quantity || 0), 0);
           setCartCount(total);
         }
       } catch (error) {
@@ -137,16 +158,36 @@ export default function Header() {
       }, 100);
     };
 
+    const handleUserLogout = () => {
+      // Immediately clear user on logout
+      setUser(null);
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+      }
+    };
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "token" && !e.newValue) {
+        // Token was removed, clear user
+        setUser(null);
+      } else if (e.key === "cart") {
+        loadCartCount();
+      }
+    };
+
     window.addEventListener("cartUpdated", handleCartUpdate);
-    window.addEventListener("storage", handleCartUpdate);
+    window.addEventListener("storage", handleStorageChange);
     window.addEventListener("userLoggedIn", handleUserLogin);
     window.addEventListener("userUpdated", handleUserUpdate);
+    window.addEventListener("userLoggedOut", handleUserLogout);
 
     return () => {
       window.removeEventListener("cartUpdated", handleCartUpdate);
-      window.removeEventListener("storage", handleCartUpdate);
+      window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("userLoggedIn", handleUserLogin);
       window.removeEventListener("userUpdated", handleUserUpdate);
+      window.removeEventListener("userLoggedOut", handleUserLogout);
     };
   }, []);
 
@@ -245,23 +286,24 @@ export default function Header() {
           "Authorization": token ? `Bearer ${token}` : "",
         },
       });
+    } catch (error) {
+      console.error("Error calling logout API:", error);
+    } finally {
+      // Clear all auth data
       setUser(null);
       if (typeof window !== "undefined") {
         localStorage.removeItem("user");
         localStorage.removeItem("token");
         // Keep cart - don't remove it
         // localStorage.removeItem("cart");
+        
+        // Clear cookie if exists (for backward compatibility)
+        document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        
+        // Dispatch event to notify other components
+        window.dispatchEvent(new Event("userLoggedOut"));
       }
-      window.location.href = "/";
-    } catch (error) {
-      console.error("Error logging out:", error);
-      // Still clear localStorage even if API call fails
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("user");
-        localStorage.removeItem("token");
-        // Keep cart - don't remove it
-        // localStorage.removeItem("cart");
-      }
+      // Force redirect to home page
       window.location.href = "/";
     }
   };
@@ -386,8 +428,13 @@ export default function Header() {
           <div className="flex justify-start my-2">
             <Link href="/" className="flex items-center ">
               {config.logo ? (
-                <img src={config.logo}
-                alt={config.siteName || "Logo"} className="w-[120px] h-[50px]" />
+                <Image
+                  src={config.logo}
+                  alt={config.siteName || "Logo"}
+                  width={120}
+                  height={50}
+                  className="w-[120px] h-[50px] object-contain"
+                />
               ) : (
                 <motion.img
                   initial={{ opacity: 0, scale: 0.8 }}
@@ -403,13 +450,26 @@ export default function Header() {
 
           {/* SEARCH DESKTOP */}
           <div className="hidden md:flex justify-end flex-1 ">
-            <form className="flex ">
+            <form 
+              className="flex"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (searchQuery.trim()) {
+                  window.location.href = `/category?search=${encodeURIComponent(searchQuery.trim())}`;
+                }
+              }}
+            >
               <input
                 type="text"
-                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search products, posts..."
                 className="flex-1 w-[280px] h-[30px] px-4 py-2 bg-white rounded-l-sm text-gray-800 outline-none"
               />
-              <button className="bg-white px-4 rounded-r-sm flex justify-center items-center">
+              <button 
+                type="submit"
+                className="bg-white px-4 rounded-r-sm flex justify-center items-center hover:bg-gray-50 transition-colors"
+              >
                 <Search size={20} className="text-green-700" />
               </button>
             </form>
@@ -422,17 +482,14 @@ export default function Header() {
               <div className="relative notification-dropdown">
                 <button
                   onClick={() => setShowNotifications(!showNotifications)}
-                  className="relative group hover:text-yellow-300 transition"
+                  className="relative p-2 hover:bg-white/10 rounded-lg transition-colors"
                 >
-                  <div className="flex gap-0.5 items-center">
-                    <Bell size={24} />
-                    {unreadNotifications > 0 && (
-                      <span className="absolute left-3 -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-semibold rounded-full flex items-center justify-center">
-                        {unreadNotifications > 9 ? "9+" : unreadNotifications}
-                      </span>
-                    )}
-                    <span className="hidden lg:block ml-1">Notifications</span>
-                  </div>
+                  <Bell className="w-[24px] h-[24px] text-white" />
+                  {unreadNotifications > 0 && (
+                    <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-xs font-semibold rounded-full flex items-center justify-center">
+                      {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                    </span>
+                  )}
                 </button>
 
                 {/* Notifications Dropdown */}
@@ -616,29 +673,39 @@ export default function Header() {
 
       {/* ▬▬▬ SEARCH MOBILE ▬▬▬ */}
       <div className="md:hidden bg-[#0a923c] py-2">
-      
-        <div className="container flex items-center">
+        <div className="container flex items-center gap-2">
           {/* MENU MOBILE */}
           <button
-            className="md:hidden mr-2"
+            className="md:hidden"
             onClick={() => setIsMenuOpen(true)}
           >
             <Menu size={30} color="white" />
           </button>
 
-          <form className="flex w-full md:w-auto">
+          <form 
+            className="flex flex-1"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (searchQuery.trim()) {
+                window.location.href = `/category?search=${encodeURIComponent(searchQuery.trim())}`;
+              }
+            }}
+          >
             <input
               type="text"
-              placeholder="Search..."
-              className="flex-1 h-8 px-3 rounded-l-md text-sm outline-none bg-white w-full"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search products, posts..."
+              className="flex-1 h-8 px-3 rounded-l-md text-sm outline-none bg-white"
             />
-            <button className="bg-white w-12 rounded-r-md flex justify-center items-center">
+            <button 
+              type="submit"
+              className="bg-white w-12 rounded-r-md flex justify-center items-center hover:bg-gray-50 transition-colors"
+            >
               <Search size={20} className="text-[#10723a]" />
             </button>
           </form>
         </div>
-
-        
       </div>
 
       {/* ▬▬▬ NAVIGATION DESKTOP ▬▬▬ */}
@@ -871,6 +938,36 @@ export default function Header() {
                 {/* SCROLLABLE CONTENT */}
                 <div className="flex-1 overflow-y-auto">
                   <nav className="px-4 py-3">
+                    {/* USER INFO & NOTIFICATIONS */}
+                    {user && (
+                      <>
+                        <div className="px-4 py-3 mb-2 bg-gray-50 rounded-xl">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-[#0a923c] flex items-center justify-center text-white font-semibold">
+                                {user.fullName?.charAt(0)?.toUpperCase() || "U"}
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold text-gray-900">
+                                  {user.fullName || "User"}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {user.email || ""}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          <Link
+                            href="/profile"
+                            onClick={() => setIsMenuOpen(false)}
+                            className="block text-center text-sm text-[#0a923c] font-medium py-2"
+                          >
+                            View Profile
+                          </Link>
+                        </div>
+                      </>
+                    )}
+
                     {/* HOME */}
                     <Link
                       href="/"
@@ -1022,6 +1119,42 @@ export default function Header() {
                         )}
                       </div>
                     ))}
+
+                    {/* DIVIDER */}
+                    <div className="h-px bg-gray-200 my-3" />
+
+                    {/* LOGIN/LOGOUT */}
+                    {!user ? (
+                      <>
+                        <Link
+                          href="/login"
+                          onClick={() => setIsMenuOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors mb-1"
+                        >
+                          <CircleUserRound size={20} className="text-[#0a923c]" />
+                          <span className="text-[15px] font-medium text-gray-900">Login</span>
+                        </Link>
+                        <Link
+                          href="/register"
+                          onClick={() => setIsMenuOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors mb-1"
+                        >
+                          <CircleUserRound size={20} className="text-[#0a923c]" />
+                          <span className="text-[15px] font-medium text-gray-900">Sign Up</span>
+                        </Link>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          handleLogout();
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-red-50 active:bg-red-100 transition-colors mb-1 text-red-600"
+                      >
+                        <LogOut size={20} />
+                        <span className="text-[15px] font-medium">Logout</span>
+                      </button>
+                    )}
 
                     {/* DIVIDER */}
                     <div className="h-px bg-gray-200 my-3" />

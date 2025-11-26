@@ -124,10 +124,29 @@ export default function CheckoutPage() {
 
     loadData();
 
+    // Listen for storage changes (when token is removed on logout)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "token" && !e.newValue) {
+        // Token was removed, redirect to login
+        window.location.replace("/login?redirect=/checkout");
+      }
+    };
+
+    // Listen for custom logout event
+    const handleLogout = () => {
+      window.location.replace("/login?redirect=/checkout");
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("userLoggedOut", handleLogout);
+
     return () => {
       isMounted = false;
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("userLoggedOut", handleLogout);
     };
-  }, [router]); // Include router in dependencies
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Calculate totals using config
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -256,7 +275,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#eeeeee] md:mt-36">
+    <div className="bg-[#eeeeee] md:mt-36 mt-30">
       <ToastContainer toasts={toasts} onClose={removeToast} />
       
       {/* Mobile Header */}
@@ -265,9 +284,6 @@ export default function CheckoutPage() {
           <div className="bg-[rgba(45,46,50,0.5)] w-9 h-9 flex items-center justify-center rounded-full">
             <ArrowLeft strokeWidth={1} color="white" onClick={() => router.back()} />
           </div>
-        </div>
-        <div className="right-side w-1/2 flex justify-end items-center">
-          <h1 className="text-base font-semibold text-white">Checkout</h1>
         </div>
       </header>
 
@@ -287,9 +303,6 @@ export default function CheckoutPage() {
       {/* Main Content */}
       <div className="w-full bg-white md:container md:rounded-sm mx-auto md:py-5 xs:px-0 xs:py-0">
         <div className="px-4 md:px-6 py-6 md:py-5">
-          <h1 className="text-xl md:text-2xl font-semibold text-gray-900 mb-6 md:mb-8 pt-12 md:pt-0">
-            Checkout
-          </h1>
 
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Left Side - Order Details */}

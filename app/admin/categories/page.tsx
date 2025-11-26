@@ -293,7 +293,16 @@ export default function CategoriesPage() {
         )
       );
       
-      const updateData: any = {
+      const updateData: {
+        name: string;
+        slug: string;
+        description?: string;
+        image?: string;
+        status?: string;
+        parentId?: string;
+        order?: number;
+        showOnHomepage?: boolean;
+      } = {
         name: category.name,
         slug: category.slug,
         description: category.description || "",
@@ -306,7 +315,7 @@ export default function CategoriesPage() {
       if (category.parentId && category.parentId !== "" && category.parentId !== null) {
         updateData.parentId = category.parentId;
       } else {
-        updateData.parentId = null;
+        updateData.parentId = undefined;
       }
       
       const response = await fetch(`/api/categories/${category.id}`, {
@@ -879,7 +888,7 @@ export default function CategoriesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle className="text-lg font-semibold">Xác nhận xóa</AlertDialogTitle>
             <AlertDialogDescription className="text-sm text-gray-600">
-              Bạn có chắc chắn muốn xóa danh mục <span className="font-semibold text-gray-900">"{categoryToDelete?.name}"</span>? 
+              Bạn có chắc chắn muốn xóa danh mục <span className="font-semibold text-gray-900">&quot;{categoryToDelete?.name}&quot;</span>? 
               Hành động này không thể hoàn tác.
             </AlertDialogDescription>
           </AlertDialogHeader>

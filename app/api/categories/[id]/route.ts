@@ -104,10 +104,10 @@ export async function PUT(
       category.showOnHomepage = Boolean(body.showOnHomepage);
     }
     
-    // Handle parentId: convert empty string to null, valid ObjectId to ObjectId
+    // Handle parentId: convert empty string to undefined, valid ObjectId to ObjectId
     if (body.parentId !== undefined) {
       if (!body.parentId || body.parentId === "" || !mongoose.Types.ObjectId.isValid(body.parentId)) {
-        category.parentId = null;
+        category.parentId = undefined;
       } else {
         category.parentId = new mongoose.Types.ObjectId(body.parentId);
       }
@@ -133,12 +133,13 @@ export async function PUT(
       data: formattedCategory,
       message: "Cập nhật danh mục thành công",
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error updating category:", error);
     
     // Handle mongoose validation errors
-    if (error.name === "ValidationError") {
-      const errors = Object.values(error.errors).map((err: any) => err.message);
+    if (error instanceof Error && 'name' in error && error.name === "ValidationError" && 'errors' in error) {
+      const validationError = error as { errors: Record<string, { message: string }> };
+      const errors = Object.values(validationError.errors).map((err) => err.message);
       return NextResponse.json(
         { success: false, error: errors.join(", ") },
         { status: 400 }
@@ -146,7 +147,7 @@ export async function PUT(
     }
 
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to update category" },
+      { success: false, error: error instanceof Error ? error.message : "Failed to update category" },
       { status: 500 }
     );
   }

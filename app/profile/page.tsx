@@ -33,7 +33,6 @@ import {
   Building2,
   CalendarIcon,
   Edit2,
-  ArrowLeft,
   Package,
   Eye,
 } from "lucide-react";
@@ -100,23 +99,33 @@ export default function ProfilePage() {
     gender: "" as "male" | "female" | "other" | "",
   });
 
-  // Fetch user data
+  // Check authentication and fetch user data
   useEffect(() => {
     let isMounted = true;
     
-    const fetchUser = async () => {
+    const checkAuthAndFetchUser = async () => {
       try {
+        // First check if token exists
         const token = localStorage.getItem("token");
+        if (!token) {
+          if (isMounted) {
+            setLoading(false);
+            router.push("/login");
+          }
+          return;
+        }
+
+        // Verify token is still valid by calling API
         const response = await fetch("/api/auth/me", {
           headers: {
-            "Authorization": token ? `Bearer ${token}` : "",
+            "Authorization": `Bearer ${token}`,
           },
         });
         const result = await response.json();
 
         if (!isMounted) return;
 
-        if (result.success) {
+        if (result.success && result.data) {
           const userData = result.data;
           setUser(userData);
           setFormData({
@@ -133,12 +142,21 @@ export default function ProfilePage() {
             gender: userData.gender || "",
           });
         } else {
-          toast.error("Error", "You need to login to view this page");
-          router.push("/login");
+          // Token invalid or expired
+          if (isMounted) {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            setLoading(false);
+            toast.error("Error", "Session expired. Please login again");
+            router.push("/login");
+          }
         }
       } catch (error) {
         console.error("Error fetching user:", error);
         if (isMounted) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          setLoading(false);
           toast.error("Error", "Failed to load user information");
           router.push("/login");
         }
@@ -149,40 +167,70 @@ export default function ProfilePage() {
       }
     };
 
-    fetchUser();
+    checkAuthAndFetchUser();
+
+    // Listen for storage changes (when token is removed on logout from another tab/window)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "token" && !e.newValue) {
+        // Token was removed, redirect to login
+        if (isMounted) {
+          setUser(null);
+          router.push("/login");
+        }
+      }
+    };
+
+    // Listen for custom logout event
+    const handleLogout = () => {
+      if (isMounted) {
+        setUser(null);
+        router.push("/login");
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("userLoggedOut", handleLogout);
     
     return () => {
       isMounted = false;
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("userLoggedOut", handleLogout);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fetch orders
   useEffect(() => {
     if (activeTab === "orders" && user) {
+      const fetchOrders = async () => {
+        try {
+          setOrdersLoading(true);
+          const token = localStorage.getItem("token");
+          if (!token) {
+            return;
+          }
+
+          const response = await fetch("/api/orders?limit=20&page=1", {
+            headers: {
+              "Authorization": `Bearer ${token}`,
+            },
+          });
+          const result = await response.json();
+
+          if (result.success) {
+            setOrders(result.data || []);
+          }
+        } catch (error) {
+          console.error("Error fetching orders:", error);
+        } finally {
+          setOrdersLoading(false);
+        }
+      };
+
       fetchOrders();
     }
-  }, [activeTab, user]);
-
-  const fetchOrders = async () => {
-    try {
-      setOrdersLoading(true);
-      const token = localStorage.getItem("token");
-      const response = await fetch("/api/orders?limit=20&page=1", {
-        headers: {
-          "Authorization": token ? `Bearer ${token}` : "",
-        },
-      });
-      const result = await response.json();
-
-      if (result.success) {
-        setOrders(result.data || []);
-      }
-    } catch (error) {
-      console.error("Error fetching orders:", error);
-    } finally {
-      setOrdersLoading(false);
-    }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, user?.id]);
 
   const formatPrice = (price: number) => {
     return "$" + price.toLocaleString("en-AU", {
@@ -296,26 +344,12 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#eeeeee] md:mt-36">
+    <div className="bg-[#eeeeee] md:mt-36 mt-30">
       <ToastContainer toasts={toasts} onClose={removeToast} />
       
       <div className="hidden md:block">
         
       </div>
-
-      {/* Mobile Header */}
-      <header className="fixed top-0 left-0 w-full flex z-50 p-3 md:hidden bg-white shadow-sm">
-        <Link
-          href="/"
-          className="bg-[rgba(45,46,50,0.5)] w-9 h-9 flex items-center justify-center rounded-full"
-        >
-          <ArrowLeft strokeWidth={1} color="white" />
-        </Link>
-        <div className="flex-1 flex justify-center items-center">
-          <h1 className="text-lg font-semibold text-gray-900">Account Information</h1>
-        </div>
-        <div className="w-9"></div>
-      </header>
 
       {/* Breadcrumb - Desktop */}
       <div className="hidden md:flex overflow-x-auto bg-[#e6e6e6] border-gray-200">
@@ -741,7 +775,7 @@ export default function ProfilePage() {
                         ? (() => {
                             try {
                               return format(new Date(user.lastLogin), "PPpp", { locale: enAU });
-                            } catch (error) {
+                            } catch {
                               return new Date(user.lastLogin).toLocaleString("en-AU");
                             }
                           })()
@@ -757,7 +791,7 @@ export default function ProfilePage() {
                       ? (() => {
                           try {
                             return format(new Date(user.createdAt), "PPP", { locale: enAU });
-                          } catch (error) {
+                          } catch {
                             return new Date(user.createdAt).toLocaleDateString("en-AU");
                           }
                         })()

@@ -141,10 +141,9 @@ const ProductSchema = new Schema<IProduct>(
 );
 
 // Indexes for faster queries
-ProductSchema.index({ slug: 1 });
+// Note: slug and sku already have indexes from unique: true, don't add duplicate
 ProductSchema.index({ categoryId: 1 });
 ProductSchema.index({ status: 1 });
-ProductSchema.index({ sku: 1 });
 ProductSchema.index({ onSale: 1 });
 ProductSchema.index({ createdAt: -1 });
 

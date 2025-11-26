@@ -65,7 +65,9 @@ export async function GET(
         // If variant is on sale, set sale price
         if (onSale && finalPrice < retailPrice) {
           salePrice = finalPrice;
-          salePercentage = Math.floor(((retailPrice - salePrice) / retailPrice) * 100);
+          if (salePrice !== null) {
+            salePercentage = Math.floor(((retailPrice - salePrice) / retailPrice) * 100);
+          }
         }
         
         // Calculate total stock from all variants
@@ -82,11 +84,11 @@ export async function GET(
       categoryId: product.categoryId && typeof product.categoryId === "object"
         ? product.categoryId._id?.toString()
         : product.categoryId?.toString(),
-      categoryName: product.categoryId && typeof product.categoryId === "object"
-        ? product.categoryId.name
+      categoryName: product.categoryId && typeof product.categoryId === "object" && product.categoryId !== null && "name" in product.categoryId
+        ? (product.categoryId as { name?: string }).name || null
         : null,
-      categorySlug: product.categoryId && typeof product.categoryId === "object"
-        ? product.categoryId.slug
+      categorySlug: product.categoryId && typeof product.categoryId === "object" && product.categoryId !== null && "slug" in product.categoryId
+        ? (product.categoryId as { slug?: string }).slug || null
         : null,
       images: product.images || [],
       retailPrice: retailPrice,

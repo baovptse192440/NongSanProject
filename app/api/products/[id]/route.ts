@@ -63,7 +63,9 @@ export async function GET(
         // If variant is on sale, set sale price
         if (onSale && finalPrice < retailPrice) {
           salePrice = finalPrice;
-          salePercentage = Math.floor(((retailPrice - salePrice) / retailPrice) * 100);
+          if (salePrice !== null) {
+            salePercentage = Math.floor(((retailPrice - salePrice) / retailPrice) * 100);
+          }
         }
         
         // Calculate total stock from all variants
@@ -80,8 +82,8 @@ export async function GET(
       categoryId: product.categoryId && typeof product.categoryId === "object"
         ? product.categoryId._id?.toString()
         : product.categoryId?.toString(),
-      categoryName: product.categoryId && typeof product.categoryId === "object"
-        ? product.categoryId.name
+      categoryName: product.categoryId && typeof product.categoryId === "object" && "name" in product.categoryId
+        ? (product.categoryId as { name: string }).name
         : null,
       images: product.images || [],
       retailPrice: retailPrice,
@@ -230,10 +232,10 @@ export async function PUT(
         if (saleStartDate) existingProduct.saleStartDate = new Date(saleStartDate);
         if (saleEndDate) existingProduct.saleEndDate = new Date(saleEndDate);
       } else {
-        existingProduct.salePrice = null;
-        existingProduct.salePercentage = null;
-        existingProduct.saleStartDate = null;
-        existingProduct.saleEndDate = null;
+        existingProduct.salePrice = undefined;
+        existingProduct.salePercentage = undefined;
+        existingProduct.saleStartDate = undefined;
+        existingProduct.saleEndDate = undefined;
       }
     } else {
       // For products with variants, reset pricing fields or keep defaults
@@ -241,16 +243,16 @@ export async function PUT(
       existingProduct.wholesalePrice = 0;
       existingProduct.stock = 0;
       existingProduct.onSale = false;
-      existingProduct.salePrice = null;
-      existingProduct.salePercentage = null;
-      existingProduct.saleStartDate = null;
-      existingProduct.saleEndDate = null;
+      existingProduct.salePrice = undefined;
+      existingProduct.salePercentage = undefined;
+      existingProduct.saleStartDate = undefined;
+      existingProduct.saleEndDate = undefined;
     }
     
     existingProduct.status = status || existingProduct.status;
 
-    if (sku !== undefined) existingProduct.sku = sku || null;
-    if (weight !== undefined) existingProduct.weight = weight ? parseFloat(weight) : null;
+    if (sku !== undefined) existingProduct.sku = sku || undefined;
+    if (weight !== undefined) existingProduct.weight = weight ? parseFloat(weight) : undefined;
     if (dimensions) existingProduct.dimensions = dimensions;
     if (tags) existingProduct.tags = tags;
 
@@ -266,8 +268,8 @@ export async function PUT(
       categoryId: updated?.categoryId && typeof updated.categoryId === "object"
         ? updated.categoryId._id?.toString()
         : categoryId,
-      categoryName: updated?.categoryId && typeof updated.categoryId === "object"
-        ? updated.categoryId.name
+      categoryName: updated?.categoryId && typeof updated.categoryId === "object" && updated.categoryId !== null && "name" in updated.categoryId
+        ? (updated.categoryId as { name?: string }).name || null
         : null,
       images: updated?.images || [],
       retailPrice: updated?.retailPrice,

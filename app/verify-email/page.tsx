@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import ToastContainer from "../common/Toast";
 import { useToast } from "../common/useToast";
-import { CheckCircle2, XCircle, Loader2, ArrowLeft, Mail } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, ArrowLeft } from "lucide-react";
 
-export default function VerifyEmailPage() {
+function VerifyEmailPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toasts, toast, removeToast } = useToast();
@@ -67,10 +67,6 @@ export default function VerifyEmailPage() {
     <div className="min-h-screen bg-[#eeeeee] mt-10 md:mt-32">
       <ToastContainer toasts={toasts} onClose={removeToast} />
       
-      <div className="hidden md:block">
-        <Header />
-      </div>
-
       {/* Mobile Header */}
       <header className="fixed top-0 left-0 w-full flex z-50 p-3 md:hidden bg-white shadow-sm">
         <Link
@@ -156,9 +152,19 @@ export default function VerifyEmailPage() {
           )}
         </div>
       </div>
-
-      <Footer />
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+      </div>
+    }>
+      <VerifyEmailPageContent />
+    </Suspense>
   );
 }
 

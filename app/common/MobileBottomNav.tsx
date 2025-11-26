@@ -1,12 +1,12 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home,
   Grid3x3,
   Newspaper,
-  Ticket,
   ShoppingCart,
   User,
 } from "lucide-react";
@@ -16,39 +16,125 @@ interface NavItem {
   icon: React.ComponentType<{ size?: number; className?: string }>;
   label: string;
   badge?: number;
+  showBadge?: boolean;
 }
-
-const navItems: NavItem[] = [
-  {
-    href: "/",
-    icon: Home,
-    label: "Trang chủ",
-  },
-  {
-    href: "/category",
-    icon: Grid3x3,
-    label: "Danh mục",
-  },
-  {
-    href: "/tin-tuc",
-    icon: Newspaper,
-    label: "Tin tức",
-  },
-  {
-    href: "/cart",
-    icon: ShoppingCart,
-    label: "Giỏ hàng",
-    badge: 0, // Có thể lấy từ state/context sau
-  },
-  {
-    href: "/login",
-    icon: User,
-    label: "Tài khoản",
-  },
-];
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
+  const [cartCount, setCartCount] = useState(0);
+  const [user, setUser] = useState<{
+    fullName?: string;
+    email?: string;
+    role?: string;
+  } | null>(null);
+
+  // Load cart count
+  const loadCartCount = () => {
+    try {
+      const savedCart = localStorage.getItem("cart");
+      if (savedCart) {
+        const items: Array<{ quantity?: number }> = JSON.parse(savedCart);
+        const total = items.reduce((sum: number, item: { quantity?: number }) => sum + (item.quantity || 0), 0);
+        setCartCount(total);
+      } else {
+        setCartCount(0);
+      }
+    } catch (error) {
+      console.error("Error loading cart count:", error);
+      setCartCount(0);
+    }
+  };
+
+  // Load user info
+  const loadUser = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setUser(null);
+        return;
+      }
+      const response = await fetch("/api/auth/me", {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+      const result = await response.json();
+      if (result.success) {
+        setUser(result.data);
+      } else {
+        setUser(null);
+      }
+    } catch (error) {
+      console.error("Error loading user:", error);
+      setUser(null);
+    }
+  };
+
+  // Initial load
+  useEffect(() => {
+    // Use setTimeout to avoid synchronous setState in effect
+    const timer = setTimeout(() => {
+      loadCartCount();
+      loadUser();
+    }, 0);
+
+    // Listen for cart updates
+    const handleCartUpdate = () => {
+      loadCartCount();
+    };
+    const handleUserLogin = () => {
+      loadUser();
+    };
+    const handleUserUpdate = () => {
+      setTimeout(() => {
+        loadUser();
+      }, 100);
+    };
+
+    window.addEventListener("cartUpdated", handleCartUpdate);
+    window.addEventListener("storage", handleCartUpdate);
+    window.addEventListener("userLoggedIn", handleUserLogin);
+    window.addEventListener("userUpdated", handleUserUpdate);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("cartUpdated", handleCartUpdate);
+      window.removeEventListener("storage", handleCartUpdate);
+      window.removeEventListener("userLoggedIn", handleUserLogin);
+      window.removeEventListener("userUpdated", handleUserUpdate);
+    };
+  }, []);
+
+  // Build nav items dynamically based on user state
+  const navItems: NavItem[] = [
+    {
+      href: "/",
+      icon: Home,
+      label: "",
+    },
+    {
+      href: "/category",
+      icon: Grid3x3,
+      label: "",
+    },
+    {
+      href: "/post",
+      icon: Newspaper,
+      label: "",
+    },
+    {
+      href: "/cart",
+      icon: ShoppingCart,
+      label: "",
+      badge: cartCount,
+      showBadge: true,
+    },
+    {
+      href: user ? "/profile" : "/login",
+      icon: User,
+      label: user ? "" : "",
+    },
+  ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
@@ -90,12 +176,19 @@ export default function MobileBottomNav() {
                   </div>
                   
                   {/* Badge for cart */}
-                  {item.badge !== undefined && item.badge > 0 && (
+                  {item.showBadge && item.badge !== undefined && item.badge > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shadow-md border-2 border-white">
                       {item.badge > 99 ? "99+" : item.badge}
                     </span>
                   )}
                 </div>
+
+                {/* Label */}
+                <span className={`text-[10px] font-medium transition-colors ${
+                  isActive ? "text-[#0a923c]" : "text-gray-500"
+                }`}>
+                  {item.label}
+                </span>
 
                 {/* Active indicator dot */}
                 {isActive && (

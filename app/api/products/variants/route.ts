@@ -87,7 +87,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const variantData: any = {
+    const variantData: {
+      productId: string;
+      name: string;
+      retailPrice: number;
+      wholesalePrice: number;
+      stock: number;
+      onSale: boolean;
+      status: string;
+      sku?: string;
+      weight?: number;
+      salePrice?: number;
+      salePercentage?: number;
+      saleStartDate?: Date;
+      saleEndDate?: Date;
+    } = {
       productId,
       name,
       retailPrice: parseFloat(retailPrice),
@@ -107,23 +121,59 @@ export async function POST(request: NextRequest) {
     }
 
     const newVariant = await ProductVariant.create(variantData);
+    
+    // Handle both array and single document cases
+    const variantDoc = Array.isArray(newVariant) ? newVariant[0] : newVariant;
+    const variantObj: {
+      _id?: { toString(): string } | string;
+      productId?: { toString(): string } | string;
+      name: string;
+      sku?: string;
+      retailPrice: number;
+      wholesalePrice: number;
+      stock: number;
+      onSale?: boolean;
+      salePrice?: number;
+      salePercentage?: number;
+      saleStartDate?: Date;
+      saleEndDate?: Date;
+      weight?: number;
+      status: string;
+      createdAt?: Date;
+    } = variantDoc.toObject ? variantDoc.toObject() : (variantDoc as {
+      _id?: { toString(): string } | string;
+      productId?: { toString(): string } | string;
+      name: string;
+      sku?: string;
+      retailPrice: number;
+      wholesalePrice: number;
+      stock: number;
+      onSale?: boolean;
+      salePrice?: number;
+      salePercentage?: number;
+      saleStartDate?: Date;
+      saleEndDate?: Date;
+      weight?: number;
+      status: string;
+      createdAt?: Date;
+    });
 
     const formattedVariant = {
-      id: newVariant._id.toString(),
-      productId: newVariant.productId.toString(),
-      name: newVariant.name,
-      sku: newVariant.sku || "",
-      retailPrice: newVariant.retailPrice,
-      wholesalePrice: newVariant.wholesalePrice,
-      stock: newVariant.stock,
-      onSale: newVariant.onSale || false,
-      salePrice: newVariant.salePrice || null,
-      salePercentage: newVariant.salePercentage || null,
-      saleStartDate: newVariant.saleStartDate?.toISOString() || null,
-      saleEndDate: newVariant.saleEndDate?.toISOString() || null,
-      weight: newVariant.weight || null,
-      status: newVariant.status,
-      createdAt: newVariant.createdAt?.toISOString(),
+      id: variantObj._id?.toString() || "",
+      productId: variantObj.productId?.toString() || "",
+      name: variantObj.name,
+      sku: variantObj.sku || "",
+      retailPrice: variantObj.retailPrice,
+      wholesalePrice: variantObj.wholesalePrice,
+      stock: variantObj.stock,
+      onSale: variantObj.onSale || false,
+      salePrice: variantObj.salePrice || null,
+      salePercentage: variantObj.salePercentage || null,
+      saleStartDate: variantObj.saleStartDate?.toISOString() || null,
+      saleEndDate: variantObj.saleEndDate?.toISOString() || null,
+      weight: variantObj.weight || null,
+      status: variantObj.status,
+      createdAt: variantObj.createdAt?.toISOString(),
     };
 
     return NextResponse.json(
@@ -134,11 +184,12 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error creating variant:", error);
     
-    if (error.name === "ValidationError") {
-      const errors = Object.values(error.errors).map((err: any) => err.message);
+    if (error instanceof Error && 'name' in error && error.name === "ValidationError" && 'errors' in error) {
+      const validationError = error as { errors: Record<string, { message: string }> };
+      const errors = Object.values(validationError.errors).map((err) => err.message);
       return NextResponse.json(
         { success: false, error: errors.join(", ") },
         { status: 400 }
@@ -146,7 +197,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to create variant" },
+      { success: false, error: error instanceof Error ? error.message : "Failed to create variant" },
       { status: 500 }
     );
   }

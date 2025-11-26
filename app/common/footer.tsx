@@ -74,7 +74,7 @@ export default function FooterAU() {
 
   if (loading) {
     return (
-      <footer className="w-full bg-[#0a923c] text-white">
+      <footer className="w-full bg-gray-50 md:bg-[#0a923c] text-gray-900 md:text-white">
         <div className="container mx-auto px-4 sm:px-5">
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-6 h-6 animate-spin" />
@@ -85,13 +85,13 @@ export default function FooterAU() {
   }
 
   return (
-    <footer className="w-full bg-[#0a923c] text-white mt-12 sm:mt-16">
+    <footer className="w-full bg-gray-50 md:bg-[#0a923c] text-gray-900 md:text-white mt-12 sm:mt-16">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main Footer Content */}
-        <div className="py-10 sm:py-12 md:py-16">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
+        <div className="py-8 md:py-10 sm:py-12 md:py-16">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 md:gap-8 lg:gap-12">
             {/* COLUMN 1 — COMPANY INFO */}
-            <div className="sm:col-span-2 lg:col-span-2 space-y-6">
+            <div className="sm:col-span-2 lg:col-span-2 space-y-5 md:space-y-6">
               {/* Logo */}
               <div className="relative w-[140px] h-[70px] sm:w-[160px] sm:h-[80px]">
                 <Image
@@ -104,12 +104,12 @@ export default function FooterAU() {
               </div>
 
               {/* Company Description */}
-              <p className="text-sm sm:text-base text-white/90 leading-relaxed max-w-md">
+              <p className="text-sm sm:text-base text-gray-700 md:text-white/90 leading-relaxed max-w-md">
                 Your trusted partner for premium agricultural products. Quality, sustainability, and excellence in every harvest.
               </p>
 
               {/* Contact Info */}
-              <div className="space-y-3.5">
+              <div className="space-y-3 md:space-y-3.5">
                 {config.address && (
                   <ContactItem
                     icon={<MapPin className="w-4 h-4" />}
@@ -159,10 +159,10 @@ export default function FooterAU() {
                         href={social.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all duration-200 hover:scale-110 hover:shadow-lg"
+                        className="w-10 h-10 rounded-full bg-gray-200 md:bg-white/10 hover:bg-gray-300 md:hover:bg-white/20 flex items-center justify-center transition-all duration-200 hover:scale-110 hover:shadow-lg"
                         aria-label={social.label}
                       >
-                        <Icon className="w-5 h-5 text-white" />
+                        <Icon className="w-5 h-5 text-gray-700 md:text-white" />
                       </a>
                     );
                   })}
@@ -191,19 +191,19 @@ export default function FooterAU() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-white/20 py-6 sm:py-8">
+        <div className="border-t border-gray-200 md:border-white/20 py-5 md:py-6 sm:py-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-xs sm:text-sm text-white/80 text-center sm:text-left">
+            <p className="text-xs sm:text-sm text-gray-600 md:text-white/80 text-center sm:text-left">
               {config.copyright || `© ${new Date().getFullYear()} ${config.siteName || "AU"}. All rights reserved.`}
             </p>
-            <div className="flex items-center gap-6 text-xs sm:text-sm text-white/80">
-              <Link href="/terms" className="hover:text-white transition-colors">
+            <div className="flex items-center gap-4 md:gap-6 text-xs sm:text-sm text-gray-600 md:text-white/80">
+              <Link href="/terms" className="hover:text-gray-900 md:hover:text-white transition-colors">
                 Terms
               </Link>
-              <Link href="/privacy" className="hover:text-white transition-colors">
+              <Link href="/privacy" className="hover:text-gray-900 md:hover:text-white transition-colors">
                 Privacy
               </Link>
-              <Link href="/sitemap" className="hover:text-white transition-colors">
+              <Link href="/sitemap" className="hover:text-gray-900 md:hover:text-white transition-colors">
                 Sitemap
               </Link>
             </div>
@@ -227,10 +227,10 @@ type ContactItemProps = {
 function ContactItem({ icon, label, text }: ContactItemProps) {
   return (
     <div className="flex items-start gap-3 text-sm sm:text-base">
-      <div className="shrink-0 mt-0.5 text-white/90">{icon}</div>
+      <div className="shrink-0 mt-0.5 text-gray-600 md:text-white/90">{icon}</div>
       <div className="flex-1">
-        <span className="font-semibold text-white/90 mr-2">{label}</span>
-        <span className="text-white/80 leading-relaxed">{text}</span>
+        <span className="font-semibold text-gray-900 md:text-white/90 mr-2">{label}</span>
+        <span className="text-gray-700 md:text-white/80 leading-relaxed">{text}</span>
       </div>
     </div>
   );
@@ -247,10 +247,10 @@ function ContactLink({ icon, text, href, bold }: ContactLinkProps) {
   return (
     <a
       href={href}
-      className="flex items-center gap-3 text-sm sm:text-base hover:text-white transition-colors group"
+      className="flex items-center gap-3 text-sm sm:text-base hover:text-gray-900 md:hover:text-white transition-colors group"
     >
-      <div className="shrink-0 text-white/90 group-hover:text-white transition-colors">{icon}</div>
-      <span className={`text-white/80 group-hover:text-white transition-colors ${bold ? "font-semibold" : "font-medium"}`}>
+      <div className="shrink-0 text-gray-600 md:text-white/90 group-hover:text-gray-900 md:group-hover:text-white transition-colors">{icon}</div>
+      <span className={`text-gray-700 md:text-white/80 group-hover:text-gray-900 md:group-hover:text-white transition-colors ${bold ? "font-semibold" : "font-medium"}`}>
         {text}
       </span>
     </a>
@@ -265,7 +265,7 @@ type FooterColumnProps = {
 function FooterColumn({ title, items }: FooterColumnProps) {
   return (
     <div>
-      <h3 className="font-bold text-sm sm:text-base mb-4 sm:mb-5 pb-3 border-b border-white/20">
+      <h3 className="font-bold text-sm sm:text-base mb-4 sm:mb-5 pb-3 border-b border-gray-200 md:border-white/20 text-gray-900 md:text-white">
         {title}
       </h3>
       <ul className="space-y-2.5 sm:space-y-3">
@@ -273,7 +273,7 @@ function FooterColumn({ title, items }: FooterColumnProps) {
           <li key={i}>
             <Link
               href={item.href}
-              className="text-sm sm:text-base text-white/80 hover:text-white transition-all duration-200 hover:translate-x-1 inline-block"
+              className="text-sm sm:text-base text-gray-700 md:text-white/80 hover:text-gray-900 md:hover:text-white transition-all duration-200 hover:translate-x-1 inline-block"
             >
               {item.label}
             </Link>

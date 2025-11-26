@@ -12,7 +12,10 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get("type");
 
     // Build query
-    const query: any = {};
+    const query: {
+      status?: string;
+      type?: string;
+    } = {};
 
     // Filter by status
     if (status && status !== "all") {
@@ -87,7 +90,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new banner
-    const bannerData: any = {
+    const bannerData: {
+      type: string;
+      image: string;
+      order: number;
+      status: string;
+      title?: string;
+      link?: string;
+    } = {
       type,
       image,
       order: order || 0,
@@ -98,16 +108,40 @@ export async function POST(request: NextRequest) {
     if (link) bannerData.link = link;
 
     const newBanner = await Banner.create(bannerData);
+    
+    // Handle both array and single document cases
+    const bannerDoc = Array.isArray(newBanner) ? newBanner[0] : newBanner;
+    
+    // Convert to plain object to avoid TypeScript issues
+    const bannerObj: {
+      _id?: { toString(): string } | string;
+      type: string;
+      image: string;
+      title?: string;
+      link?: string;
+      order: number;
+      status: string;
+      createdAt?: Date;
+    } = bannerDoc.toObject ? bannerDoc.toObject() : (bannerDoc as {
+      _id?: { toString(): string } | string;
+      type: string;
+      image: string;
+      title?: string;
+      link?: string;
+      order: number;
+      status: string;
+      createdAt?: Date;
+    });
 
     const formattedBanner = {
-      id: newBanner._id.toString(),
-      type: newBanner.type,
-      image: newBanner.image,
-      title: newBanner.title || "",
-      link: newBanner.link || "",
-      order: newBanner.order,
-      status: newBanner.status,
-      createdAt: newBanner.createdAt?.toISOString(),
+      id: bannerObj._id?.toString() || "",
+      type: bannerObj.type,
+      image: bannerObj.image,
+      title: bannerObj.title || "",
+      link: bannerObj.link || "",
+      order: bannerObj.order,
+      status: bannerObj.status,
+      createdAt: bannerObj.createdAt?.toISOString() || new Date().toISOString(),
     };
 
     return NextResponse.json(
@@ -118,19 +152,27 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error creating banner:", error);
     
-    if (error.name === "ValidationError") {
-      const errors = Object.values(error.errors).map((err: any) => err.message);
+    if (error instanceof Error) {
+      if ('name' in error && error.name === "ValidationError" && 'errors' in error) {
+        const validationError = error as { errors: Record<string, { message: string }> };
+        const errors = Object.values(validationError.errors).map((err) => err.message);
+        return NextResponse.json(
+          { success: false, error: errors.join(", ") },
+          { status: 400 }
+        );
+      }
+
       return NextResponse.json(
-        { success: false, error: errors.join(", ") },
-        { status: 400 }
+        { success: false, error: error.message || "Failed to create banner" },
+        { status: 500 }
       );
     }
 
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to create banner" },
+      { success: false, error: "Failed to create banner" },
       { status: 500 }
     );
   }

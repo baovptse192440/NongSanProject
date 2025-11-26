@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     const productIdsWithVariants = productsWithVariants.map(p => p._id);
     
     // Fetch variants for these products
-    let variantsMap = new Map();
+    const variantsMap = new Map();
     if (productIdsWithVariants.length > 0) {
       const variants = await ProductVariant.find({
         productId: { $in: productIdsWithVariants },
@@ -117,7 +117,9 @@ export async function GET(request: NextRequest) {
           // If variant is on sale, set sale price
           if (onSale && finalPrice < retailPrice) {
             salePrice = finalPrice;
-            salePercentage = Math.floor(((retailPrice - salePrice) / retailPrice) * 100);
+            if (salePrice !== null) {
+              salePercentage = Math.floor(((retailPrice - salePrice) / retailPrice) * 100);
+            }
           }
           
           // Calculate total stock from all variants
@@ -134,8 +136,8 @@ export async function GET(request: NextRequest) {
         categoryId: product.categoryId ? 
           (typeof product.categoryId === "object" ? product.categoryId._id?.toString() : product.categoryId.toString())
           : null,
-        categoryName: product.categoryId && typeof product.categoryId === "object" 
-          ? product.categoryId.name 
+        categoryName: product.categoryId && typeof product.categoryId === "object" && product.categoryId !== null && "name" in product.categoryId
+          ? (product.categoryId as { name?: string }).name || null
           : null,
         images: product.images || [],
         retailPrice: retailPrice,
@@ -277,35 +279,40 @@ export async function POST(request: NextRequest) {
     }
 
     const newProduct = await Product.create(productData);
-    const populated = await Product.findById(newProduct._id).populate("categoryId", "name slug").lean();
+    
+    // Handle both array and single document cases
+    const productDoc = Array.isArray(newProduct) ? newProduct[0] : newProduct;
+    const productId = productDoc._id?.toString() || (productDoc as { id?: string }).id || "";
+    
+    const populated = await Product.findById(productId).populate("categoryId", "name slug").lean();
 
     const formattedProduct = {
-      id: newProduct._id.toString(),
-      name: newProduct.name,
-      slug: newProduct.slug,
-      description: newProduct.description || "",
-      shortDescription: newProduct.shortDescription || "",
+      id: productId,
+      name: (productDoc as { name: string }).name,
+      slug: (productDoc as { slug: string }).slug,
+      description: (productDoc as { description?: string }).description || "",
+      shortDescription: (productDoc as { shortDescription?: string }).shortDescription || "",
       categoryId: populated?.categoryId && typeof populated.categoryId === "object"
         ? populated.categoryId._id?.toString()
         : categoryId,
-      categoryName: populated?.categoryId && typeof populated.categoryId === "object"
-        ? populated.categoryId.name
+      categoryName: populated?.categoryId && typeof populated.categoryId === "object" && populated.categoryId !== null && "name" in populated.categoryId
+        ? (populated.categoryId as { name?: string }).name || null
         : null,
-      images: newProduct.images || [],
-      retailPrice: newProduct.retailPrice,
-      wholesalePrice: newProduct.wholesalePrice,
-      onSale: newProduct.onSale || false,
-      salePrice: newProduct.salePrice || null,
-      salePercentage: newProduct.salePercentage || null,
-      saleStartDate: newProduct.saleStartDate?.toISOString() || null,
-      saleEndDate: newProduct.saleEndDate?.toISOString() || null,
-      stock: newProduct.stock || 0,
-      sku: newProduct.sku || "",
-      status: newProduct.status,
-      weight: newProduct.weight || null,
-      dimensions: newProduct.dimensions || null,
-      tags: newProduct.tags || [],
-      createdAt: newProduct.createdAt?.toISOString(),
+      images: (productDoc as { images?: string[] }).images || [],
+      retailPrice: (productDoc as { retailPrice: number }).retailPrice,
+      wholesalePrice: (productDoc as { wholesalePrice: number }).wholesalePrice,
+      onSale: (productDoc as { onSale?: boolean }).onSale || false,
+      salePrice: (productDoc as { salePrice?: number }).salePrice || null,
+      salePercentage: (productDoc as { salePercentage?: number }).salePercentage || null,
+      saleStartDate: (productDoc as { saleStartDate?: Date }).saleStartDate?.toISOString() || null,
+      saleEndDate: (productDoc as { saleEndDate?: Date }).saleEndDate?.toISOString() || null,
+      stock: (productDoc as { stock?: number }).stock || 0,
+      sku: (productDoc as { sku?: string }).sku || "",
+      status: (productDoc as { status: string }).status,
+      weight: (productDoc as { weight?: number }).weight || null,
+      dimensions: (productDoc as { dimensions?: unknown }).dimensions || null,
+      tags: (productDoc as { tags?: string[] }).tags || [],
+      createdAt: (productDoc as { createdAt?: Date }).createdAt?.toISOString(),
     };
 
     return NextResponse.json(

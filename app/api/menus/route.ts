@@ -96,16 +96,40 @@ export async function POST(request: NextRequest) {
     }
 
     const newMenu = await Menu.create(menuData);
+    
+    // Handle both array and single document cases
+    const menuDoc = Array.isArray(newMenu) ? newMenu[0] : newMenu;
+    
+    // Convert to plain object to avoid TypeScript issues
+    const menuObj: {
+      _id?: { toString(): string } | string;
+      title: string;
+      url?: string;
+      icon?: string;
+      order: number;
+      status: string;
+      parentId?: { toString(): string } | string;
+      createdAt?: Date;
+    } = menuDoc.toObject ? menuDoc.toObject() : (menuDoc as {
+      _id?: { toString(): string } | string;
+      title: string;
+      url?: string;
+      icon?: string;
+      order: number;
+      status: string;
+      parentId?: { toString(): string } | string;
+      createdAt?: Date;
+    });
 
     const formattedMenu = {
-      id: newMenu._id.toString(),
-      title: newMenu.title,
-      url: newMenu.url || "",
-      icon: newMenu.icon || "",
-      order: newMenu.order || 0,
-      status: newMenu.status,
-      parentId: newMenu.parentId?.toString(),
-      createdAt: newMenu.createdAt?.toISOString(),
+      id: menuObj._id?.toString() || "",
+      title: menuObj.title,
+      url: menuObj.url || "",
+      icon: menuObj.icon || "",
+      order: menuObj.order || 0,
+      status: menuObj.status,
+      parentId: menuObj.parentId?.toString() || null,
+      createdAt: menuObj.createdAt?.toISOString(),
     };
 
     return NextResponse.json(

@@ -160,16 +160,36 @@ export async function POST(request: NextRequest) {
     if (gender) userData.gender = gender;
 
     const newUser = await User.create(userData);
+    
+    // Handle both array and single document cases
+    const userDoc = Array.isArray(newUser) ? newUser[0] : newUser;
+    const userObj: {
+      _id?: { toString(): string } | string;
+      email: string;
+      fullName: string;
+      phone?: string;
+      role: string;
+      address?: string;
+      city?: string;
+    } = userDoc.toObject ? userDoc.toObject() : (userDoc as {
+      _id?: { toString(): string } | string;
+      email: string;
+      fullName: string;
+      phone?: string;
+      role: string;
+      address?: string;
+      city?: string;
+    });
 
     // Return user without password
     const formattedUser = {
-      id: newUser._id.toString(),
-      email: newUser.email,
-      fullName: newUser.fullName,
-      phone: newUser.phone || "",
-      role: newUser.role,
-      address: newUser.address || "",
-      city: newUser.city || "",
+      id: userObj._id?.toString() || "",
+      email: userObj.email,
+      fullName: userObj.fullName,
+      phone: userObj.phone || "",
+      role: userObj.role,
+      address: userObj.address || "",
+      city: userObj.city || "",
       state: newUser.state || "",
       zipCode: newUser.zipCode || "",
       country: newUser.country || "",

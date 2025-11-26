@@ -3,7 +3,7 @@ import connectDB from "@/lib/mongodb";
 import SiteConfig from "@/models/SiteConfig";
 
 // GET - Lấy config (chỉ có 1 config duy nhất)
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     await connectDB();
 

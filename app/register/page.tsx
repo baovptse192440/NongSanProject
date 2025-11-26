@@ -6,6 +6,8 @@ import { motion } from "framer-motion";
 import ToastContainer from "../common/Toast";
 import { useToast } from "../common/useToast";
 import { Loader2 } from "lucide-react";
+import Header from "../common/header";
+import Footer from "../common/footer";
 
 export default function RegisterPage() {
   const router = useRouter();

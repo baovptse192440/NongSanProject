@@ -76,10 +76,10 @@ export default function CartPage() {
 
     // Listen for cart updates
     const handleCartUpdate = () => {
-      loadCart();
+      loadCartData();
     };
     const handleStorageChange = () => {
-      loadCart();
+      loadCartData();
     };
 
     window.addEventListener("cartUpdated", handleCartUpdate);
@@ -135,7 +135,7 @@ export default function CartPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#eeeeee] mt-10 md:mt-32">
+      <div className="bg-[#eeeeee] mt-10 md:mt-32">
         <div className="flex items-center justify-center py-40">
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
@@ -147,7 +147,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#eeeeee] md:mt-36">
+    <div className="bg-[#eeeeee] md:mt-36">
       {/* Mobile Header */}
       <header className="fixed top-0 left-0 w-full flex z-50 p-3 md:hidden">
         <div className="left-side w-1/2">

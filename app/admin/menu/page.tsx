@@ -118,19 +118,21 @@ export default function MenuPage() {
     }
 
     const { key, direction } = sortConfig;
-    let aValue: any = a[key as keyof Menu];
-    let bValue: any = b[key as keyof Menu];
+    let aValue: string | number | Date | undefined = a[key as keyof Menu];
+    let bValue: string | number | Date | undefined = b[key as keyof Menu];
 
     if (aValue === undefined) aValue = "";
     if (bValue === undefined) bValue = "";
 
-    if (typeof aValue === "string") {
+    if (typeof aValue === "string" && typeof bValue === "string") {
       aValue = aValue.toLowerCase();
       bValue = bValue.toLowerCase();
     }
 
-    if (aValue < bValue) return direction === "asc" ? -1 : 1;
-    if (aValue > bValue) return direction === "asc" ? 1 : -1;
+    if (aValue !== undefined && bValue !== undefined) {
+      if (aValue < bValue) return direction === "asc" ? -1 : 1;
+      if (aValue > bValue) return direction === "asc" ? 1 : -1;
+    }
     return 0;
   });
 
@@ -732,7 +734,7 @@ export default function MenuPage() {
           <AlertDialogHeader>
             <AlertDialogTitle className="text-lg font-semibold">Xác nhận xóa</AlertDialogTitle>
             <AlertDialogDescription className="text-sm text-gray-600">
-              Bạn có chắc chắn muốn xóa menu <span className="font-semibold text-gray-900">"{menuToDelete?.title}"</span>? 
+              Bạn có chắc chắn muốn xóa menu <span className="font-semibold text-gray-900">&quot;{menuToDelete?.title}&quot;</span>? 
               Hành động này không thể hoàn tác.
             </AlertDialogDescription>
           </AlertDialogHeader>

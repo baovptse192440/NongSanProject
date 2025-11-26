@@ -109,18 +109,46 @@ export async function POST(request: NextRequest) {
     }
 
     const newCategory = await Category.create(categoryData);
+    
+    // Handle both array and single document cases
+    const categoryDoc = Array.isArray(newCategory) ? newCategory[0] : newCategory;
+    
+    // Convert to plain object to avoid TypeScript issues
+    const categoryObj: {
+      _id?: { toString(): string } | string;
+      name: string;
+      slug: string;
+      description?: string;
+      image?: string;
+      status: string;
+      productCount?: number;
+      parentId?: { toString(): string } | string;
+      showOnHomepage?: boolean;
+      createdAt?: Date;
+    } = categoryDoc.toObject ? categoryDoc.toObject() : (categoryDoc as {
+      _id?: { toString(): string } | string;
+      name: string;
+      slug: string;
+      description?: string;
+      image?: string;
+      status: string;
+      productCount?: number;
+      parentId?: { toString(): string } | string;
+      showOnHomepage?: boolean;
+      createdAt?: Date;
+    });
 
     const formattedCategory = {
-      id: newCategory._id.toString(),
-      name: newCategory.name,
-      slug: newCategory.slug,
-      description: newCategory.description || "",
-      image: newCategory.image || "",
-      status: newCategory.status,
-      productCount: newCategory.productCount || 0,
-      parentId: newCategory.parentId?.toString(),
-      showOnHomepage: Boolean(newCategory.showOnHomepage),
-      createdAt: newCategory.createdAt?.toISOString(),
+      id: categoryObj._id?.toString() || "",
+      name: categoryObj.name,
+      slug: categoryObj.slug,
+      description: categoryObj.description || "",
+      image: categoryObj.image || "",
+      status: categoryObj.status,
+      productCount: categoryObj.productCount || 0,
+      parentId: categoryObj.parentId?.toString() || null,
+      showOnHomepage: Boolean(categoryObj.showOnHomepage),
+      createdAt: categoryObj.createdAt?.toISOString(),
     };
 
     return NextResponse.json(

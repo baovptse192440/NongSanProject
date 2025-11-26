@@ -3,6 +3,7 @@ import connectDB from "@/lib/mongodb";
 import { verifyToken } from "@/lib/jwt";
 import { getTokenFromRequest } from "@/lib/getTokenFromRequest";
 import Order from "@/models/Order";
+import mongoose from "mongoose";
 
 export async function GET(request: NextRequest) {
   try {
@@ -34,8 +35,9 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1");
     const skip = (page - 1) * limit;
 
-    // Build query
-    const query: any = { userId: decoded.userId };
+    // Build query - Convert userId to ObjectId for proper matching
+    const userId = new mongoose.Types.ObjectId(decoded.userId);
+    const query: any = { userId };
     if (status) {
       query.status = status;
     }
