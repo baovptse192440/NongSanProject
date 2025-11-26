@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,6 +50,7 @@ interface Category {
   status: "active" | "inactive";
   productCount: number;
   parentId?: string;
+  showOnHomepage?: boolean;
   createdAt: string;
 }
 
@@ -72,6 +74,7 @@ export default function CategoriesPage() {
     image: "",
     status: "active" as "active" | "inactive",
     parentId: "",
+    showOnHomepage: false,
   });
 
   // Fetch categories function
@@ -187,6 +190,7 @@ export default function CategoriesPage() {
       image: "",
       status: "active",
       parentId: "",
+      showOnHomepage: false,
     });
     setShowModal(true);
   };
@@ -200,6 +204,7 @@ export default function CategoriesPage() {
       image: category.image,
       status: category.status,
       parentId: category.parentId || "",
+      showOnHomepage: category.showOnHomepage || false,
     });
     setShowModal(true);
   };
@@ -212,12 +217,18 @@ export default function CategoriesPage() {
         : "/api/categories";
       const method = editingCategory ? "PUT" : "POST";
 
+      // Prepare data - handle empty parentId
+      const submitData = {
+        ...formData,
+        parentId: formData.parentId && formData.parentId !== "" ? formData.parentId : undefined,
+      };
+
       const response = await fetch(url, {
         method,
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submitData),
       });
 
       const result = await response.json();
@@ -265,6 +276,80 @@ export default function CategoriesPage() {
       toast.error("Lỗi", "Đã xảy ra lỗi khi xóa danh mục");
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleToggleShowOnHomepage = async (category: Category) => {
+    try {
+      const currentValue = Boolean(category.showOnHomepage);
+      const newValue = !currentValue;
+      
+      // Optimistic update - update UI immediately
+      setCategories((prevCategories) =>
+        prevCategories.map((cat) =>
+          cat.id === category.id
+            ? { ...cat, showOnHomepage: newValue }
+            : cat
+        )
+      );
+      
+      const updateData: any = {
+        name: category.name,
+        slug: category.slug,
+        description: category.description || "",
+        image: category.image || "",
+        status: category.status,
+        showOnHomepage: newValue,
+      };
+      
+      // Handle parentId: set to null if empty, otherwise keep it
+      if (category.parentId && category.parentId !== "" && category.parentId !== null) {
+        updateData.parentId = category.parentId;
+      } else {
+        updateData.parentId = null;
+      }
+      
+      const response = await fetch(`/api/categories/${category.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        // Refresh to get latest data from server
+        await fetchCategories();
+        toast.success(
+          "Thành công",
+          newValue
+            ? `Đã hiển thị "${category.name}" trên trang chủ`
+            : `Đã ẩn "${category.name}" khỏi trang chủ`
+        );
+      } else {
+        // Revert optimistic update on error
+        setCategories((prevCategories) =>
+          prevCategories.map((cat) =>
+            cat.id === category.id
+              ? { ...cat, showOnHomepage: currentValue }
+              : cat
+          )
+        );
+        toast.error("Lỗi", result.error || "Không thể cập nhật");
+      }
+    } catch (error) {
+      console.error("Error toggling showOnHomepage:", error);
+      // Revert optimistic update on error
+      const currentValue = Boolean(category.showOnHomepage);
+      setCategories((prevCategories) =>
+        prevCategories.map((cat) =>
+          cat.id === category.id
+            ? { ...cat, showOnHomepage: currentValue }
+            : cat
+        )
+      );
+      toast.error("Lỗi", "Đã xảy ra lỗi khi cập nhật");
     }
   };
 
@@ -448,6 +533,9 @@ export default function CategoriesPage() {
                   <SortableHeader sortKey="slug">Slug</SortableHeader>
                   <SortableHeader sortKey="productCount">SP</SortableHeader>
                   <SortableHeader sortKey="status">Trạng thái</SortableHeader>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Trang chủ
+                  </th>
                   <SortableHeader sortKey="createdAt">Ngày tạo</SortableHeader>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Thao tác
@@ -457,7 +545,7 @@ export default function CategoriesPage() {
               <tbody className="divide-y divide-gray-100">
                 {sortedCategories.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-10">
+                    <td colSpan={8} className="text-center py-10">
                       <div className="flex flex-col items-center justify-center">
                         <Folder className="h-10 w-10 text-gray-300 mb-2" />
                         <p className="text-xs font-medium text-gray-500">
@@ -524,6 +612,12 @@ export default function CategoriesPage() {
                         >
                           {category.status === "active" ? "Hoạt động" : "Ngừng"}
                         </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Switch
+                          checked={Boolean(category.showOnHomepage)}
+                          onCheckedChange={() => handleToggleShowOnHomepage(category)}
+                        />
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-xs text-gray-500">
@@ -736,6 +830,24 @@ export default function CategoriesPage() {
                       <SelectItem value="inactive">Ngừng hoạt động</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                {/* SHOW ON HOMEPAGE */}
+                <div className="flex items-center justify-between space-y-0 py-2">
+                  <div className="space-y-0.5">
+                    <label className="text-sm font-medium text-gray-700">
+                      Hiển thị trên trang chủ
+                    </label>
+                    <p className="text-xs text-gray-500">
+                      Hiển thị danh mục này với sản phẩm trên trang chủ
+                    </p>
+                  </div>
+                  <Switch
+                    checked={formData.showOnHomepage}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, showOnHomepage: checked })
+                    }
+                  />
                 </div>
 
                 {/* FOOTER */}

@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
         const city = row.City || row.city || row["Thành phố"] || "";
         const state = row.State || row.state || row["Tỉnh"] || "";
         const zipCode = row.ZipCode || row.zipCode || row["Mã bưu điện"] || "";
-        const country = row.Country || row.country || row["Quốc gia"] || "Việt Nam";
+        const country = row.Country || row.country || row["Quốc gia"] || "Australia";
         const dateOfBirth = row.DateOfBirth || row.dateOfBirth || row["Ngày sinh"] || null;
         const gender = row.Gender || row.gender || row["Giới tính"] || null;
         const status = (row.Status || row.status || row["Trạng thái"] || "active").toLowerCase();

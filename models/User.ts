@@ -79,7 +79,7 @@ const UserSchema = new Schema<IUser>(
       type: String,
       trim: true,
       maxlength: [100, "Quốc gia không được vượt quá 100 ký tự"],
-      default: "Việt Nam",
+      default: "Australia",
     },
     avatar: {
       type: String,
@@ -110,8 +110,7 @@ const UserSchema = new Schema<IUser>(
   }
 );
 
-// Index for email lookup
-UserSchema.index({ email: 1 });
+// Indexes (email already has index from unique: true)
 UserSchema.index({ role: 1 });
 UserSchema.index({ status: 1 });
 

@@ -26,6 +26,9 @@ export interface ISiteConfig {
   // Google Analytics
   googleAnalyticsId?: string;
   googleTagManagerId?: string;
+  // Shipping Configuration
+  shippingFee?: number; // Default shipping fee
+  minimumOrderForFreeShipping?: number; // Minimum order amount for free shipping
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -121,6 +124,16 @@ const SiteConfigSchema = new Schema<ISiteConfig>(
     googleTagManagerId: {
       type: String,
       trim: true,
+    },
+    shippingFee: {
+      type: Number,
+      default: 10,
+      min: [0, "Shipping fee cannot be negative"],
+    },
+    minimumOrderForFreeShipping: {
+      type: Number,
+      default: 50,
+      min: [0, "Minimum order for free shipping cannot be negative"],
     },
   },
   {

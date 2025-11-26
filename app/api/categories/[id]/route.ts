@@ -37,6 +37,7 @@ export async function GET(
       status: category.status,
       productCount: category.productCount || 0,
       parentId: category.parentId?.toString(),
+      showOnHomepage: Boolean(category.showOnHomepage),
       createdAt: category.createdAt?.toISOString(),
     };
 
@@ -93,8 +94,25 @@ export async function PUT(
       }
     }
 
-    // Update category
-    Object.assign(category, body);
+    // Update category - handle parentId properly
+    if (body.name) category.name = body.name;
+    if (body.slug) category.slug = body.slug;
+    if (body.description !== undefined) category.description = body.description || "";
+    if (body.image !== undefined) category.image = body.image || "";
+    if (body.status) category.status = body.status;
+    if (body.showOnHomepage !== undefined) {
+      category.showOnHomepage = Boolean(body.showOnHomepage);
+    }
+    
+    // Handle parentId: convert empty string to null, valid ObjectId to ObjectId
+    if (body.parentId !== undefined) {
+      if (!body.parentId || body.parentId === "" || !mongoose.Types.ObjectId.isValid(body.parentId)) {
+        category.parentId = null;
+      } else {
+        category.parentId = new mongoose.Types.ObjectId(body.parentId);
+      }
+    }
+    
     await category.save();
 
     const formattedCategory = {
@@ -105,7 +123,8 @@ export async function PUT(
       image: category.image || "",
       status: category.status,
       productCount: category.productCount || 0,
-      parentId: category.parentId?.toString(),
+      parentId: category.parentId?.toString() || null,
+      showOnHomepage: Boolean(category.showOnHomepage),
       createdAt: category.createdAt?.toISOString(),
     };
 

@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  BellRing,
   CircleUserRound,
   ShoppingCart,
   Waypoints,
@@ -15,6 +14,7 @@ import {
   ChevronDown,
   ChevronRight,
   X,
+  Bell,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 interface SiteConfig {
@@ -55,6 +55,20 @@ export default function Header() {
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
   const [expandedMenuId, setExpandedMenuId] = useState<string | null>(null);
   const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>(null);
+  const [cartCount, setCartCount] = useState(0);
+  const [user, setUser] = useState<any>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<Array<{
+    id: string;
+    title: string;
+    message: string;
+    read: boolean;
+    orderId?: string;
+    orderNumber?: string;
+    createdAt: string;
+  }>>([]);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   // STATE DROPDOWN KHO HÀNG
   const [open, setOpen] = useState(false);
@@ -62,6 +76,195 @@ export default function Header() {
 
   // STATE MEGA MENU DESKTOP
   const [hoverMenu, setHoverMenu] = useState<string | null>(null);
+
+  // Load user info and cart count
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch("/api/auth/me", {
+          headers: {
+            "Authorization": token ? `Bearer ${token}` : "",
+          },
+        });
+        const result = await response.json();
+        if (result.success) {
+          setUser(result.data);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("user", JSON.stringify(result.data));
+          }
+        } else {
+          setUser(null);
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("user");
+          }
+        }
+      } catch (error) {
+        console.error("Error loading user:", error);
+        setUser(null);
+      }
+    };
+
+    const loadCartCount = () => {
+      try {
+        const savedCart = localStorage.getItem("cart");
+        if (savedCart) {
+          const items = JSON.parse(savedCart);
+          const total = items.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
+          setCartCount(total);
+        }
+      } catch (error) {
+        console.error("Error loading cart count:", error);
+      }
+    };
+
+    loadUser();
+    loadCartCount();
+
+    // Listen for updates
+    const handleCartUpdate = () => {
+      loadCartCount();
+    };
+
+    const handleUserLogin = () => {
+      loadUser();
+    };
+
+    const handleUserUpdate = () => {
+      // Debounce to prevent multiple rapid calls
+      setTimeout(() => {
+        loadUser();
+      }, 100);
+    };
+
+    window.addEventListener("cartUpdated", handleCartUpdate);
+    window.addEventListener("storage", handleCartUpdate);
+    window.addEventListener("userLoggedIn", handleUserLogin);
+    window.addEventListener("userUpdated", handleUserUpdate);
+
+    return () => {
+      window.removeEventListener("cartUpdated", handleCartUpdate);
+      window.removeEventListener("storage", handleCartUpdate);
+      window.removeEventListener("userLoggedIn", handleUserLogin);
+      window.removeEventListener("userUpdated", handleUserUpdate);
+    };
+  }, []);
+
+  // Fetch notifications for logged in users
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!user) {
+        setNotifications([]);
+        setUnreadNotifications(0);
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch("/api/notifications?limit=10", {
+          headers: {
+            "Authorization": token ? `Bearer ${token}` : "",
+          },
+        });
+        const result = await response.json();
+        if (result.success) {
+          setNotifications(result.data || []);
+          setUnreadNotifications(result.unreadCount || 0);
+        }
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+      }
+    };
+
+    fetchNotifications();
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showNotifications && !target.closest('.notification-dropdown')) {
+        setShowNotifications(false);
+      }
+      if (showUserMenu && !target.closest('.user-menu-dropdown')) {
+        setShowUserMenu(false);
+      }
+    };
+
+    if (showNotifications || showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showNotifications, showUserMenu]);
+
+  const handleMarkAsRead = async (notificationId?: string) => {
+    if (!user) return;
+    
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : "",
+        },
+        body: JSON.stringify({
+          notificationId,
+          markAllAsRead: !notificationId,
+        }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        // Refresh notifications
+        const refreshResponse = await fetch("/api/notifications?limit=10", {
+          headers: {
+            "Authorization": token ? `Bearer ${token}` : "",
+          },
+        });
+        const refreshResult = await refreshResponse.json();
+        if (refreshResult.success) {
+          setNotifications(refreshResult.data || []);
+          setUnreadNotifications(refreshResult.unreadCount || 0);
+        }
+      }
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      await fetch("/api/auth/logout", { 
+        method: "POST",
+        headers: {
+          "Authorization": token ? `Bearer ${token}` : "",
+        },
+      });
+      setUser(null);
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+        // Keep cart - don't remove it
+        // localStorage.removeItem("cart");
+      }
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Error logging out:", error);
+      // Still clear localStorage even if API call fails
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+        // Keep cart - don't remove it
+        // localStorage.removeItem("cart");
+      }
+      window.location.href = "/";
+    }
+  };
 
   // Fetch config và menus
   useEffect(() => {
@@ -163,7 +366,7 @@ export default function Header() {
 
           <button className="flex items-center space-x-1 hover:text-yellow-300 transition">
             <CloudDownload size={16} />
-            <span>Tải ứng dụng</span>
+            <span>Download App</span>
           </button>
 
           <Link
@@ -171,7 +374,7 @@ export default function Header() {
             className="flex items-center space-x-1 hover:text-yellow-300 transition"
           >
             <Waypoints size={16} />
-            <span>Dành cho Cộng tác viên</span>
+            <span>For Partners</span>
           </Link>
         </div>
       </div>
@@ -199,11 +402,11 @@ export default function Header() {
           </div>
 
           {/* SEARCH DESKTOP */}
-          <div className="hidden md:flex justify-center flex-1 ">
+          <div className="hidden md:flex justify-end flex-1 ">
             <form className="flex ">
               <input
                 type="text"
-                placeholder="Nhập nội dung tìm kiếm..."
+                placeholder="Search..."
                 className="flex-1 w-[280px] h-[30px] px-4 py-2 bg-white rounded-l-sm text-gray-800 outline-none"
               />
               <button className="bg-white px-4 rounded-r-sm flex justify-center items-center">
@@ -213,43 +416,170 @@ export default function Header() {
           </div>
 
           {/* ACTION BUTTONS */}
-          <div className="flex gap-4 items-center text-sm">
-            <Link
-              href="/thong-bao"
-              className="relative group hover:text-yellow-300 transition"
-            >
-              <div className="flex gap-0.5">
-              <BellRing size={20} />
-              <span className="absolute left-3 -top-1 -right-1 w-3 h-3 bg-red-500 text-[8px] flex items-center justify-center rounded-full">
-                3
-              </span>
-               Thông báo của tôi 
-              </div>
-              
-            </Link>
+          <div className="flex gap-4 items-center text-sm pl-4">
+            {/* Notifications - Only show if user is logged in */}
+            {user && (
+              <div className="relative notification-dropdown">
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="relative group hover:text-yellow-300 transition"
+                >
+                  <div className="flex gap-0.5 items-center">
+                    <Bell size={24} />
+                    {unreadNotifications > 0 && (
+                      <span className="absolute left-3 -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-semibold rounded-full flex items-center justify-center">
+                        {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                      </span>
+                    )}
+                    <span className="hidden lg:block ml-1">Notifications</span>
+                  </div>
+                </button>
 
+                {/* Notifications Dropdown */}
+                {showNotifications && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-y-auto notification-dropdown">
+                    <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                      <h3 className="font-semibold text-gray-900">Notifications</h3>
+                      {unreadNotifications > 0 && (
+                        <button
+                          onClick={() => handleMarkAsRead()}
+                          className="text-xs text-[#0a923c] hover:underline"
+                        >
+                          Mark all as read
+                        </button>
+                      )}
+                    </div>
+                    <div className="divide-y divide-gray-200">
+                      {notifications.length === 0 ? (
+                        <div className="p-8 text-center text-sm text-gray-500">
+                          No notifications
+                        </div>
+                      ) : (
+                        notifications.map((notif) => (
+                          <div
+                            key={notif.id}
+                            className={`p-4 hover:bg-gray-50 transition-colors cursor-pointer ${
+                              !notif.read ? "bg-blue-50" : ""
+                            }`}
+                            onClick={() => {
+                              if (!notif.read) {
+                                handleMarkAsRead(notif.id);
+                              }
+                              if (notif.orderId) {
+                                window.location.href = `/profile/orders/${notif.orderId}`;
+                              }
+                              setShowNotifications(false);
+                            }}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${
+                                !notif.read ? "bg-[#0a923c]" : "bg-gray-300"
+                              }`} />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-gray-900">{notif.title}</p>
+                                <p className="text-xs text-gray-600 mt-1">{notif.message}</p>
+                                <p className="text-xs text-gray-400 mt-2">
+                                  {new Date(notif.createdAt).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    {notifications.length > 0 && (
+                      <div className="p-2 border-t border-gray-200">
+                        <Link
+                          href="/profile?tab=orders"
+                          className="block text-center text-xs text-[#0a923c] hover:underline py-2"
+                          onClick={() => setShowNotifications(false)}
+                        >
+                          View all notifications
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {user ? (
+              <div className="relative">
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center hover:text-yellow-300 transition"
+                >
+                  <CircleUserRound size={24} />
+                  <span className="hidden lg:inline ml-1 truncate max-w-[120px]">
+                    {user.fullName || "Account"}
+                  </span>
+                  <ChevronDown
+                    size={16}
+                    className={`ml-1 transition-transform ${showUserMenu ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                <AnimatePresence>
+                  {showUserMenu && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden z-50"
+                      onMouseLeave={() => setShowUserMenu(false)}
+                    >
+                      <div className="py-2">
+                        <Link
+                          href="/profile"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                        >
+                          Account Information
+                        </Link>
+                        <Link
+                          href="/cart"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                        >
+                          Shopping Cart
+                        </Link>
+                        <div className="border-t border-gray-200 my-1"></div>
+                        <button
+                          onClick={handleLogout}
+                          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          Logout
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <>
             <Link
-              href="login"
+                  href="/login"
               className="flex items-center hover:text-yellow-300 transition"
             >
               <CircleUserRound size={24} />
-              <span className="hidden lg:inline ml-1">Đăng nhập</span>
+                  <span className="hidden lg:inline ml-1">Login</span>
             </Link>
 
             <span className="hidden md:block opacity-50">|</span>
 
             <Link
-              href="register"
+                  href="/register"
               className="hidden sm:inline hover:text-yellow-300 transition"
             >
-              Đăng ký
+                  Sign Up
             </Link>
+              </>
+            )}
 
             {/* KHO HÀNG */}
             <div className="hidden md:flex items-center text-sm text-white relative ">
               <div className="flex items-center bg-white/10 hover:bg-white/20 transition px-3 py-2 rounded-lg cursor-pointer">
                 <Store size={16} className="mr-2 text-white/90" />
-                <span className="opacity-90">Giao từ kho:</span>
+                <span className="opacity-90">Ship from warehouse:</span>
 
                 <div className=" relative">
                   <motion.button
@@ -262,34 +592,8 @@ export default function Header() {
                       transition={{ duration: 0.2 }}
                       className="ml-1"
                     >
-                      <ChevronDown size={16} />
                     </motion.span>
                   </motion.button>
-
-                  <AnimatePresence>
-                    {open && (
-                      <motion.ul
-                        initial={{ opacity: 0, y: -6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
-                        transition={{ duration: 0.18 }}
-                        className="absolute mt-2 left-0 w-[140px] bg-white text-black rounded-xl shadow-lg border overflow-hidden z-50"
-                      >
-                        {["Tân Phú", "Quận 1", "Quận 7"].map((loc) => (
-                          <li
-                            key={loc}
-                            onClick={() => {
-                              setSelected(loc);
-                              setOpen(false);
-                            }}
-                            className="px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer"
-                          >
-                            {loc}
-                          </li>
-                        ))}
-                      </motion.ul>
-                    )}
-                  </AnimatePresence>
                 </div>
               </div>
             </div>
@@ -300,34 +604,41 @@ export default function Header() {
               className="relative hover:text-yellow-300 m-0"
             >
               <ShoppingCart size={24} />
-              <span className="absolute -top-1 -right-2 bg-red-500 w-4 h-4 text-[10px] rounded-full flex justify-center items-center">
-                0
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-2 bg-red-500 w-5 h-5 text-[10px] rounded-full flex justify-center items-center text-white font-semibold">
+                  {cartCount > 99 ? "99+" : cartCount}
               </span>
+              )}
             </Link>
-
-            {/* MENU MOBILE */}
-            <button
-              className="md:hidden"
-              onClick={() => setIsMenuOpen(true)}
-            >
-              <Menu size={32} />
-            </button>
           </div>
         </div>
       </div>
 
       {/* ▬▬▬ SEARCH MOBILE ▬▬▬ */}
-      <div className="md:hidden bg-[#0a923c] px-4 py-2">
-        <form className="flex">
-          <input
-            type="text"
-            placeholder="Nhập nội dung tìm kiếm..."
-            className="flex-1 h-8 px-3 rounded-l-md text-sm outline-none bg-white"
-          />
-          <button className="bg-white w-12 rounded-r-md flex justify-center items-center">
-            <Search size={20} className="text-[#10723a]" />
+      <div className="md:hidden bg-[#0a923c] py-2">
+      
+        <div className="container flex items-center">
+          {/* MENU MOBILE */}
+          <button
+            className="md:hidden mr-2"
+            onClick={() => setIsMenuOpen(true)}
+          >
+            <Menu size={30} color="white" />
           </button>
-        </form>
+
+          <form className="flex w-full md:w-auto">
+            <input
+              type="text"
+              placeholder="Search..."
+              className="flex-1 h-8 px-3 rounded-l-md text-sm outline-none bg-white w-full"
+            />
+            <button className="bg-white w-12 rounded-r-md flex justify-center items-center">
+              <Search size={20} className="text-[#10723a]" />
+            </button>
+          </form>
+        </div>
+
+        
       </div>
 
       {/* ▬▬▬ NAVIGATION DESKTOP ▬▬▬ */}
@@ -341,7 +652,7 @@ export default function Header() {
             >
               <button className="flex items-center bg-[#04772f] px-3 py-2.5 text-sm font-semibold hover:text-yellow-300 cursor-pointer transition">
                 <Menu size={20} className="mr-2" />
-                DANH MỤC SẢN PHẨM
+                PRODUCT CATEGORIES
                 <ChevronDown
                   size={16}
                   className={`ml-1 transition-transform ${
@@ -369,7 +680,7 @@ export default function Header() {
                           onMouseLeave={() => setHoveredCategoryId(null)}
                         >
                           <Link
-                            href={`/category?slug=${category.slug}`}
+                            href={`/category/${category.slug}`}
                             className={`flex items-center gap-3 px-4 py-3 transition-colors border-b border-gray-100 last:border-b-0 ${
                               hoveredCategoryId === category.id
                                 ? "bg-[#0a923c] text-white"
@@ -397,7 +708,7 @@ export default function Header() {
                                 <p className={`text-xs ${
                                   hoveredCategoryId === category.id ? "text-white/80" : "text-gray-500"
                                 }`}>
-                                  {category.productCount} sản phẩm
+                                  {category.productCount} products
                                 </p>
                               )}
                             </div>
@@ -424,7 +735,7 @@ export default function Header() {
                                 {category.children.map((child) => (
                                   <Link
                                     key={child.id}
-                                    href={`/category?slug=${child.slug}`}
+                                    href={`/category/${child.slug}`}
                                     className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#0a923c] hover:text-white transition-colors border-b border-gray-100 last:border-b-0"
                                   >
                                     {child.image && (
@@ -444,7 +755,7 @@ export default function Header() {
                                       </p>
                                       {child.productCount !== undefined && child.productCount > 0 && (
                                         <p className="text-xs text-gray-500 hover:text-white/80">
-                                          {child.productCount} sản phẩm
+                                          {child.productCount} products
                                         </p>
                                       )}
                                     </div>
@@ -560,17 +871,17 @@ export default function Header() {
                 {/* SCROLLABLE CONTENT */}
                 <div className="flex-1 overflow-y-auto">
                   <nav className="px-4 py-3">
-                    {/* TRANG CHỦ */}
+                    {/* HOME */}
                     <Link
                       href="/"
                       onClick={() => setIsMenuOpen(false)}
                       className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors mb-1"
                     >
                       <Store size={20} className="text-[#0a923c]" />
-                      <span className="text-[15px] font-medium text-gray-900">Trang chủ</span>
+                      <span className="text-[15px] font-medium text-gray-900">Home</span>
                     </Link>
 
-                    {/* DANH MỤC SẢN PHẨM */}
+                    {/* PRODUCT CATEGORIES */}
                     {categories.length > 0 && (
                       <div className="mb-2">
                         <button
@@ -579,7 +890,7 @@ export default function Header() {
                         >
                           <div className="flex items-center gap-3">
                             <Menu size={20} className="text-[#0a923c]" />
-                            <span className="text-[15px] font-medium text-gray-900">Danh mục sản phẩm</span>
+                            <span className="text-[15px] font-medium text-gray-900">Product Categories</span>
                           </div>
                           <ChevronRight
                             size={18}
@@ -630,7 +941,7 @@ export default function Header() {
                                               {category.children.map((child) => (
                                                 <Link
                                                   key={child.id}
-                                                  href={`/category?slug=${child.slug}`}
+                                                  href={`/category/${child.slug}`}
                                                   onClick={() => {
                                                     setIsMenuOpen(false);
                                                     setExpandedCategoryId(null);
@@ -715,12 +1026,12 @@ export default function Header() {
                     {/* DIVIDER */}
                     <div className="h-px bg-gray-200 my-3" />
 
-                    {/* KHO HÀNG */}
+                    {/* WAREHOUSE */}
                     <div className="px-4 py-3">
                       <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl">
                         <Store size={18} className="text-gray-600" />
                         <div>
-                          <p className="text-[12px] text-gray-500">Giao hàng từ kho</p>
+                          <p className="text-[12px] text-gray-500">Ship from warehouse</p>
                           <p className="text-[14px] font-semibold text-gray-900">{selected}</p>
                         </div>
                       </div>

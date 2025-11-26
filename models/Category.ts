@@ -9,6 +9,7 @@ export interface ICategory {
   status: "active" | "inactive";
   productCount?: number;
   parentId?: mongoose.Types.ObjectId | string;
+  showOnHomepage?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -52,6 +53,10 @@ const CategorySchema = new Schema<ICategory>(
       type: Schema.Types.ObjectId,
       ref: "Category",
       default: null,
+    },
+    showOnHomepage: {
+      type: Boolean,
+      default: false,
     },
   },
   {

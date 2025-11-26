@@ -20,6 +20,8 @@ import {
   Youtube,
   BarChart,
   X,
+  Truck,
+  DollarSign,
 } from "lucide-react";
 import ToastContainer from "@/app/common/Toast";
 import { useToast } from "@/app/common/useToast";
@@ -46,6 +48,8 @@ interface SiteConfig {
   youtube: string;
   googleAnalyticsId: string;
   googleTagManagerId: string;
+  shippingFee: number;
+  minimumOrderForFreeShipping: number;
   updatedAt: string;
 }
 
@@ -77,6 +81,8 @@ export default function ConfigPage() {
     youtube: "",
     googleAnalyticsId: "",
     googleTagManagerId: "",
+    shippingFee: 10,
+    minimumOrderForFreeShipping: 50,
     updatedAt: "",
   });
 
@@ -583,6 +589,52 @@ export default function ConfigPage() {
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0a923c]/20 focus:border-[#0a923c] transition-all"
                 placeholder="https://youtube.com/yourchannel"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* SHIPPING CONFIGURATION */}
+        <div className="bg-white rounded-md border border-gray-200/60 p-6">
+          <div className="flex items-center gap-2 mb-5">
+            <Truck className="h-5 w-5 text-[#0a923c]" />
+            <h2 className="text-lg font-semibold text-gray-900">Shipping Configuration</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label htmlFor="shippingFee" className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                <DollarSign className="h-3.5 w-3.5" />
+                Shipping Fee (AUD)
+              </label>
+              <input
+                type="number"
+                id="shippingFee"
+                min="0"
+                step="0.01"
+                value={formData.shippingFee}
+                onChange={(e) => setFormData({ ...formData, shippingFee: parseFloat(e.target.value) || 0 })}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0a923c]/20 focus:border-[#0a923c] transition-all"
+                placeholder="10.00"
+              />
+              <p className="text-xs text-gray-500">Default shipping fee for orders below minimum order amount</p>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="minimumOrderForFreeShipping" className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                <DollarSign className="h-3.5 w-3.5" />
+                Minimum Order for Free Shipping (AUD)
+              </label>
+              <input
+                type="number"
+                id="minimumOrderForFreeShipping"
+                min="0"
+                step="0.01"
+                value={formData.minimumOrderForFreeShipping}
+                onChange={(e) => setFormData({ ...formData, minimumOrderForFreeShipping: parseFloat(e.target.value) || 0 })}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0a923c]/20 focus:border-[#0a923c] transition-all"
+                placeholder="50.00"
+              />
+              <p className="text-xs text-gray-500">Orders above this amount will have free shipping</p>
             </div>
           </div>
         </div>

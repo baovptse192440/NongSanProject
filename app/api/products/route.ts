@@ -51,41 +51,111 @@ export async function GET(request: NextRequest) {
       .limit(limit)
       .lean();
 
-    // Get variants count for each product
+    // Get variants for products that have variants
     const ProductVariant = (await import("@/models/ProductVariant")).default;
     await connectDB();
 
+    // Get all products with variants
+    const productsWithVariants = products.filter(p => p.hasVariants);
+    const productIdsWithVariants = productsWithVariants.map(p => p._id);
+    
+    // Fetch variants for these products
+    let variantsMap = new Map();
+    if (productIdsWithVariants.length > 0) {
+      const variants = await ProductVariant.find({
+        productId: { $in: productIdsWithVariants },
+        status: "active"
+      }).lean();
+      
+      // Group variants by productId
+      variants.forEach((variant: any) => {
+        const productId = variant.productId.toString();
+        if (!variantsMap.has(productId)) {
+          variantsMap.set(productId, []);
+        }
+        variantsMap.get(productId).push(variant);
+      });
+    }
+
     // Convert to plain objects and format
-    const formattedProducts = products.map((product) => ({
-      id: product._id?.toString(),
-      name: product.name,
-      slug: product.slug,
-      description: product.description || "",
-      shortDescription: product.shortDescription || "",
-      categoryId: product.categoryId ? 
-        (typeof product.categoryId === "object" ? product.categoryId._id?.toString() : product.categoryId.toString())
-        : null,
-      categoryName: product.categoryId && typeof product.categoryId === "object" 
-        ? product.categoryId.name 
-        : null,
-      images: product.images || [],
-      retailPrice: product.retailPrice,
-      wholesalePrice: product.wholesalePrice,
-      onSale: product.onSale || false,
-      salePrice: product.salePrice || null,
-      salePercentage: product.salePercentage || null,
-      saleStartDate: product.saleStartDate?.toISOString() || null,
-      saleEndDate: product.saleEndDate?.toISOString() || null,
-      stock: product.stock || 0,
-      sku: product.sku || "",
-      status: product.status,
-      weight: product.weight || null,
-      dimensions: product.dimensions || null,
-      tags: product.tags || [],
-      hasVariants: product.hasVariants || false,
-      createdAt: product.createdAt?.toISOString() || new Date().toISOString(),
-      updatedAt: product.updatedAt?.toISOString() || new Date().toISOString(),
-    }));
+    const formattedProducts = products.map((product) => {
+      let retailPrice = product.retailPrice;
+      let wholesalePrice = product.wholesalePrice;
+      let onSale = product.onSale || false;
+      let salePrice = product.salePrice || null;
+      let salePercentage = product.salePercentage || null;
+      let stock = product.stock || 0;
+
+      // If product has variants, calculate price from variants
+      if (product.hasVariants) {
+        const variants = variantsMap.get(product._id.toString()) || [];
+        if (variants.length > 0) {
+          // Calculate prices from variants
+          const variantPrices = variants.map((v: any) => {
+            const variantFinalPrice = v.onSale && v.salePrice ? v.salePrice : v.retailPrice;
+            const variantRetailPrice = v.retailPrice;
+            const variantWholesalePrice = v.wholesalePrice;
+            return {
+              retailPrice: variantRetailPrice,
+              wholesalePrice: variantWholesalePrice,
+              finalPrice: variantFinalPrice,
+              onSale: v.onSale || false,
+              stock: v.stock || 0,
+            };
+          });
+
+          // Get min price for display
+          const minPriceVariant = variantPrices.reduce((min: any, current: any) => 
+            current.finalPrice < min.finalPrice ? current : min
+          );
+          
+          retailPrice = minPriceVariant.retailPrice;
+          wholesalePrice = minPriceVariant.wholesalePrice;
+          const finalPrice = minPriceVariant.finalPrice;
+          onSale = minPriceVariant.onSale;
+          
+          // If variant is on sale, set sale price
+          if (onSale && finalPrice < retailPrice) {
+            salePrice = finalPrice;
+            salePercentage = Math.floor(((retailPrice - salePrice) / retailPrice) * 100);
+          }
+          
+          // Calculate total stock from all variants
+          stock = variantPrices.reduce((sum: number, v: any) => sum + (v.stock || 0), 0);
+        }
+      }
+
+      return {
+        id: product._id?.toString(),
+        name: product.name,
+        slug: product.slug,
+        description: product.description || "",
+        shortDescription: product.shortDescription || "",
+        categoryId: product.categoryId ? 
+          (typeof product.categoryId === "object" ? product.categoryId._id?.toString() : product.categoryId.toString())
+          : null,
+        categoryName: product.categoryId && typeof product.categoryId === "object" 
+          ? product.categoryId.name 
+          : null,
+        images: product.images || [],
+        retailPrice: retailPrice,
+        wholesalePrice: wholesalePrice,
+        onSale: onSale,
+        salePrice: salePrice,
+        salePercentage: salePercentage,
+        saleStartDate: product.saleStartDate?.toISOString() || null,
+        saleEndDate: product.saleEndDate?.toISOString() || null,
+        stock: stock,
+        sku: product.sku || "",
+        status: product.status,
+        weight: product.weight || null,
+        dimensions: product.dimensions || null,
+        tags: product.tags || [],
+        hasVariants: product.hasVariants || false,
+        createdAt: product.createdAt?.toISOString() || new Date().toISOString(),
+        updatedAt: product.updatedAt?.toISOString() || new Date().toISOString(),
+      };
+    });
 
     return NextResponse.json({
       success: true,
@@ -198,6 +268,12 @@ export async function POST(request: NextRequest) {
       }
       if (weight) productData.weight = parseFloat(weight);
       if (dimensions) productData.dimensions = dimensions;
+    } else {
+      // For products with variants, set default values or skip pricing fields
+      productData.retailPrice = 0; // Default value for products with variants
+      productData.wholesalePrice = 0; // Default value for products with variants
+      productData.stock = 0; // Stock is managed at variant level
+      productData.onSale = false;
     }
 
     const newProduct = await Product.create(productData);

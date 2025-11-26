@@ -74,13 +74,13 @@ const ProductSchema = new Schema<IProduct>(
     },
     retailPrice: {
       type: Number,
-      required: [true, "Giá bán lẻ là bắt buộc"],
       min: [0, "Giá bán lẻ không thể âm"],
+      default: 0,
     },
     wholesalePrice: {
       type: Number,
-      required: [true, "Giá đại lý là bắt buộc"],
       min: [0, "Giá đại lý không thể âm"],
+      default: 0,
     },
     onSale: {
       type: Boolean,
@@ -103,7 +103,6 @@ const ProductSchema = new Schema<IProduct>(
     },
     stock: {
       type: Number,
-      required: [true, "Số lượng tồn kho là bắt buộc"],
       min: [0, "Số lượng tồn kho không thể âm"],
       default: 0,
     },

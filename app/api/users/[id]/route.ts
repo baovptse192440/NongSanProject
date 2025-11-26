@@ -89,16 +89,16 @@ export async function PUT(
       );
     }
 
-    // Validation
-    if (!email || !fullName) {
+    // Validation - Only validate if email or fullName is provided
+    if (email && !fullName) {
       return NextResponse.json(
-        { success: false, error: "Email và họ tên là bắt buộc" },
+        { success: false, error: "Họ tên là bắt buộc khi cập nhật email" },
         { status: 400 }
       );
     }
 
-    // Check if email already exists (except for current user)
-    if (email.toLowerCase() !== existingUser.email.toLowerCase()) {
+    // Check if email already exists (except for current user) - only if email is being changed
+    if (email && email.toLowerCase() !== existingUser.email.toLowerCase()) {
       const emailExists = await User.findOne({ email: email.toLowerCase(), _id: { $ne: id } });
       if (emailExists) {
         return NextResponse.json(
@@ -106,13 +106,13 @@ export async function PUT(
           { status: 400 }
         );
       }
+      existingUser.email = email.toLowerCase();
     }
 
-    // Update user
-    existingUser.email = email.toLowerCase();
-    existingUser.fullName = fullName;
-    existingUser.role = role || existingUser.role;
-    existingUser.status = status || existingUser.status;
+    // Update user fields only if provided
+    if (fullName !== undefined) existingUser.fullName = fullName;
+    if (role !== undefined) existingUser.role = role;
+    if (status !== undefined) existingUser.status = status;
 
     // Update password if provided
     if (password && password.length >= 6) {

@@ -316,9 +316,9 @@ export default function CreateProductPage() {
           } = {
             productId: productId,
             name: variant.name,
-            retailPrice: parseFloat(variant.retailPrice),
-            wholesalePrice: parseFloat(variant.wholesalePrice),
-            stock: parseInt(variant.stock),
+            retailPrice: variant.retailPrice ? parseFloat(variant.retailPrice) : 0,
+            wholesalePrice: variant.wholesalePrice ? parseFloat(variant.wholesalePrice) : 0,
+            stock: variant.stock ? parseInt(variant.stock) : 0,
             onSale: variant.onSale,
             status: variant.status,
           };

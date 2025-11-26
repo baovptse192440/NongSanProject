@@ -39,6 +39,8 @@ export async function getSiteConfig() {
       youtube: config.youtube || "",
       googleAnalyticsId: config.googleAnalyticsId || "",
       googleTagManagerId: config.googleTagManagerId || "",
+      shippingFee: config.shippingFee ?? 10,
+      minimumOrderForFreeShipping: config.minimumOrderForFreeShipping ?? 50,
       updatedAt: config.updatedAt?.toISOString() || new Date().toISOString(),
     };
   } catch (error) {

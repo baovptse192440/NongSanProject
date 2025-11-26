@@ -1,29 +1,78 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import Header from "../common/header";
-import Footer from "../common/footer";
+import ToastContainer from "../common/Toast";
+import { useToast } from "../common/useToast";
+import { Loader2 } from "lucide-react";
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const { toasts, toast, removeToast } = useToast();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: add registration logic here
-    console.log("Name:", name);
-    console.log("Email:", email);
-    console.log("Password:", password);
-    console.log("Confirm Password:", confirmPassword);
+
+    // Validation
+    if (password !== confirmPassword) {
+      toast.error("Error", "Passwords do not match");
+      return;
+    }
+
+    if (password.length < 6) {
+      toast.error("Error", "Password must be at least 6 characters");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          fullName: name,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success(
+          "Success",
+          "Please check your email to verify your account"
+        );
+        
+        // Redirect to login after 2 seconds
+        setTimeout(() => {
+          router.push("/login");
+        }, 2000);
+      } else {
+        toast.error("Error", result.error || "Registration failed");
+      }
+    } catch (error) {
+      console.error("Registration error:", error);
+      toast.error("Error", "An error occurred. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="mt-30 flex flex-col bg-[#f5f5f7]">
+      <ToastContainer toasts={toasts} onClose={removeToast} />
       <Header />
 
       <main className="flex-1 flex items-center justify-center px-4 py-10">
@@ -34,21 +83,21 @@ export default function RegisterPage() {
           className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8 sm:p-8"
         >
           <h2 className="text-sm sm:text-xl font-bold text-gray-900 text-center mb-6">
-            ĐĂNG KÝ
+            SIGN UP
           </h2>
 
           <form onSubmit={handleRegister} className="space-y-5">
             {/* Name */}
             <div className="flex flex-col">
               <label htmlFor="name" className="text-sm font-semibold text-gray-700 mb-1">
-                Họ và tên
+                Full Name
               </label>
               <input
                 type="text"
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Nhập họ và tên"
+                placeholder="Enter your full name"
                 className="px-2 py-1 border border-gray-300 rounded-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition"
                 required
               />
@@ -64,7 +113,7 @@ export default function RegisterPage() {
                 id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Nhập email"
+                placeholder="Enter your email"
                 className="px-2 py-1 border border-gray-300 rounded-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition"
                 required
               />
@@ -73,14 +122,14 @@ export default function RegisterPage() {
             {/* Password */}
             <div className="flex flex-col relative">
               <label htmlFor="password" className="text-sm font-semibold text-gray-700 mb-1">
-                Mật khẩu
+                Password
               </label>
               <input
                 type={showPassword ? "text" : "password"}
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Nhập mật khẩu"
+                placeholder="Enter your password"
                 className="px-2 py-1 border border-gray-300 rounded-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition w-full"
                 required
               />
@@ -89,21 +138,21 @@ export default function RegisterPage() {
                 className="absolute right-3 top-10 -translate-y-1/2 text-gray-500 text-sm"
                 onClick={() => setShowPassword(!showPassword)}
               >
-                {showPassword ? "Ẩn" : "Hiện"}
+                {showPassword ? "Hide" : "Show"}
               </button>
             </div>
 
             {/* Confirm Password */}
             <div className="flex flex-col relative">
               <label htmlFor="confirmPassword" className="text-sm font-semibold text-gray-700 mb-1">
-                Nhập lại mật khẩu
+                Confirm Password
               </label>
               <input
                 type={showConfirmPassword ? "text" : "password"}
                 id="confirmPassword"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Nhập lại mật khẩu"
+                placeholder="Confirm your password"
                 className="px-2 py-1 border border-gray-300 rounded-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition w-full"
                 required
               />
@@ -112,7 +161,7 @@ export default function RegisterPage() {
                 className="absolute right-3 top-10 -translate-y-1/2 text-gray-500 text-sm"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               >
-                {showConfirmPassword ? "Ẩn" : "Hiện"}
+                {showConfirmPassword ? "Hide" : "Show"}
               </button>
             </div>
 
@@ -120,16 +169,24 @@ export default function RegisterPage() {
             <motion.button
               whileTap={{ scale: 0.95 }}
               type="submit"
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-xl shadow-md flex justify-center items-center transition"
+              disabled={loading}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-xl shadow-md flex justify-center items-center transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              ĐĂNG KÝ
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  Signing up...
+                </>
+              ) : (
+                "SIGN UP"
+              )}
             </motion.button>
 
             {/* Login link */}
             <div className="text-center text-sm text-gray-500">
-              Bạn đã có tài khoản?{" "}
+              Already have an account?{" "}
               <a href="/login" className="text-green-600 font-semibold hover:underline">
-                Đăng nhập
+                Login
               </a>
             </div>
           </form>

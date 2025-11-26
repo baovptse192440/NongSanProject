@@ -68,24 +68,35 @@ export default function TinyMCEEditor({
       // Load icons
       import("tinymce/icons/default").catch(() => {});
       
-      // Load plugins cho TinyMCE 5
+      // Load plugins cho TinyMCE 5 - Full features
       Promise.all([
         import("tinymce/plugins/advlist").catch(() => {}),
-        import("tinymce/plugins/autolink").catch(() => {}),
-        import("tinymce/plugins/lists").catch(() => {}),
-        import("tinymce/plugins/link").catch(() => {}),
-        import("tinymce/plugins/image").catch(() => {}),
-        import("tinymce/plugins/charmap").catch(() => {}),
-        import("tinymce/plugins/preview").catch(() => {}),
         import("tinymce/plugins/anchor").catch(() => {}),
-        import("tinymce/plugins/searchreplace").catch(() => {}),
-        import("tinymce/plugins/visualblocks").catch(() => {}),
+        import("tinymce/plugins/autolink").catch(() => {}),
+        import("tinymce/plugins/autoresize").catch(() => {}),
+        import("tinymce/plugins/charmap").catch(() => {}),
         import("tinymce/plugins/code").catch(() => {}),
+        import("tinymce/plugins/codesample").catch(() => {}),
+        import("tinymce/plugins/directionality").catch(() => {}),
+        import("tinymce/plugins/emoticons").catch(() => {}),
         import("tinymce/plugins/fullscreen").catch(() => {}),
-        import("tinymce/plugins/insertdatetime").catch(() => {}),
-        import("tinymce/plugins/media").catch(() => {}),
-        import("tinymce/plugins/table").catch(() => {}),
         import("tinymce/plugins/help").catch(() => {}),
+        import("tinymce/plugins/image").catch(() => {}),
+        import("tinymce/plugins/importcss").catch(() => {}),
+        import("tinymce/plugins/insertdatetime").catch(() => {}),
+        import("tinymce/plugins/link").catch(() => {}),
+        import("tinymce/plugins/lists").catch(() => {}),
+        import("tinymce/plugins/media").catch(() => {}),
+        import("tinymce/plugins/nonbreaking").catch(() => {}),
+        import("tinymce/plugins/pagebreak").catch(() => {}),
+        import("tinymce/plugins/preview").catch(() => {}),
+        import("tinymce/plugins/quickbars").catch(() => {}),
+        import("tinymce/plugins/save").catch(() => {}),
+        import("tinymce/plugins/searchreplace").catch(() => {}),
+        import("tinymce/plugins/table").catch(() => {}),
+        import("tinymce/plugins/template").catch(() => {}),
+        import("tinymce/plugins/visualblocks").catch(() => {}),
+        import("tinymce/plugins/visualchars").catch(() => {}),
         import("tinymce/plugins/wordcount").catch(() => {}),
       ]).catch(() => {});
     }
@@ -144,44 +155,168 @@ export default function TinyMCEEditor({
         }}
         init={{
           height: height,
-          menubar: false,
+          menubar: "file edit view insert format tools table help",
           plugins: [
             "advlist",
-            "autolink",
-            "lists",
-            "link",
-            "image",
-            "charmap",
-            "preview",
             "anchor",
-            "searchreplace",
-            "visualblocks",
+            "autolink",
+            "autoresize",
+            "charmap",
             "code",
+            "codesample",
+            "directionality",
+            "emoticons",
             "fullscreen",
-            "insertdatetime",
-            "media",
-            "table",
             "help",
+            "image",
+            "importcss",
+            "insertdatetime",
+            "link",
+            "lists",
+            "media",
+            "nonbreaking",
+            "pagebreak",
+            "preview",
+            "quickbars",
+            "save",
+            "searchreplace",
+            "table",
+            "template",
+            "visualblocks",
+            "visualchars",
             "wordcount",
           ],
-          toolbar:
-            "undo redo | blocks | " +
-            "bold italic forecolor | alignleft aligncenter " +
-            "alignright alignjustify | bullist numlist outdent indent | " +
-            "removeformat | help | link image",
+          toolbar: [
+            "undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist | outdent indent | link image media table codesample | charmap emoticons | code fullscreen preview | save print | help"
+          ],
+          toolbar_mode: "sliding",
           content_style:
             "body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 14px; line-height: 1.6; }",
           placeholder: placeholder,
           branding: false,
           resize: true,
           skin: "oxide",
-          // Image upload settings
-          automatic_uploads: false, // Tắt để dùng file_picker_callback
-          file_picker_types: "image",
+          // Font options
+          font_family_formats: "Arial=arial,helvetica,sans-serif; Arial Black=arial black,avant garde; Book Antiqua=book antiqua,palatino; Comic Sans MS=comic sans ms,sans-serif; Courier New=courier new,courier; Georgia=georgia,palatino; Helvetica=helvetica; Impact=impact,chicago; Symbol=symbol; Tahoma=tahoma,arial,helvetica,sans-serif; Terminal=terminal,monaco; Times New Roman=times new roman,times; Trebuchet MS=trebuchet ms,geneva; Verdana=verdana,geneva; Webdings=webdings; Wingdings=wingdings,zapf dingbats",
+          font_size_formats: "8pt 10pt 12pt 14pt 16pt 18pt 24pt 36pt 48pt",
+          // Block formats
+          block_formats: "Paragraph=p; Heading 1=h1; Heading 2=h2; Heading 3=h3; Heading 4=h4; Heading 5=h5; Heading 6=h6; Preformatted=pre",
+          // Color options
+          color_map: [
+            "000000", "Black",
+            "993300", "Burnt orange",
+            "333300", "Dark olive",
+            "003300", "Dark green",
+            "003366", "Dark azure",
+            "000080", "Navy Blue",
+            "333399", "Indigo",
+            "333333", "Very dark gray",
+            "800000", "Maroon",
+            "FF6600", "Orange",
+            "808000", "Olive",
+            "008000", "Green",
+            "008080", "Teal",
+            "0000FF", "Blue",
+            "666699", "Gray-blue",
+            "808080", "Gray",
+            "FF0000", "Red",
+            "FF9900", "Amber",
+            "99CC00", "Yellow green",
+            "339966", "Sea green",
+            "33CCCC", "Turquoise",
+            "3366FF", "Royal blue",
+            "800080", "Purple",
+            "999999", "Medium gray",
+            "FF00FF", "Magenta",
+            "FFCC00", "Gold",
+            "FFFF00", "Yellow",
+            "00FF00", "Lime",
+            "00FFFF", "Aqua",
+            "00CCFF", "Sky blue",
+            "993366", "Red violet",
+            "FFFFFF", "White",
+            "FF99CC", "Pink",
+            "FFCC99", "Peach",
+            "FFFF99", "Light yellow",
+            "CCFFCC", "Light green",
+            "CCFFFF", "Light cyan",
+            "99CCFF", "Light blue",
+            "CC99FF", "Plum"
+          ],
+          // Table options
+          table_toolbar: "tableprops tabledelete | tableinsertrowbefore tableinsertrowafter tabledeleterow | tableinsertcolbefore tableinsertcolafter tabledeletecol",
+          table_resize_bars: true,
+          table_default_attributes: {
+            border: "1"
+          },
+          table_default_styles: {
+            "border-collapse": "collapse",
+            "width": "100%"
+          },
+          // Image options
           image_advtab: true,
           image_caption: true,
           image_title: true,
           image_dimensions: true,
+          image_class_list: [
+            { title: "None", value: "" },
+            { title: "Responsive", value: "img-responsive" },
+            { title: "Rounded", value: "img-rounded" },
+            { title: "Circle", value: "img-circle" }
+          ],
+          // Link options
+          link_assume_external_targets: true,
+          link_context_toolbar: true,
+          link_title: true,
+          // Code sample
+          codesample_languages: [
+            { text: "HTML/XML", value: "markup" },
+            { text: "JavaScript", value: "javascript" },
+            { text: "CSS", value: "css" },
+            { text: "PHP", value: "php" },
+            { text: "Ruby", value: "ruby" },
+            { text: "Python", value: "python" },
+            { text: "Java", value: "java" },
+            { text: "C", value: "c" },
+            { text: "C#", value: "csharp" },
+            { text: "C++", value: "cpp" }
+          ],
+          // Template
+          templates: [
+            {
+              title: "Two Column Layout",
+              description: "A two column layout with header and footer",
+              content: '<div class="row"><div class="col-6"><p>Column 1</p></div><div class="col-6"><p>Column 2</p></div></div>'
+            },
+            {
+              title: "Article Template",
+              description: "A simple article template",
+              content: '<article><h1>Article Title</h1><p>Article content goes here...</p></article>'
+            }
+          ],
+          // Quickbars
+          quickbars_selection_toolbar: "bold italic | quicklink quickimage quicktable",
+          quickbars_insert_toolbar: "quickimage quicktable",
+          // Autoresize
+          autoresize_bottom_margin: 50,
+          autoresize_max_height: 800,
+          autoresize_min_height: 200,
+          // Visual blocks
+          visualblocks_default_state: false,
+          visualchars_default_state: false,
+          // Word count
+          wordcount_countregex: /[\w\u2019\'-]+/g,
+          // Save
+          save_onsavecallback: function() {
+            console.log("Save triggered");
+          },
+          // Print
+          print: {
+            stylesheets: ["/css/print.css"]
+          },
+          // Image upload settings
+          automatic_uploads: false, // Tắt để dùng file_picker_callback
+          file_picker_types: "image",
           // URL handling - giữ nguyên relative URLs, không tự động thêm prefix
           relative_urls: true, // Cho phép relative URLs
           remove_script_host: true, // Bỏ host, chỉ giữ path

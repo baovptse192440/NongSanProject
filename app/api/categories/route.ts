@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Category from "@/models/Category";
+import mongoose from "mongoose";
 
 // GET - Lấy tất cả categories
 export async function GET(request: NextRequest) {
@@ -10,6 +11,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
     const search = searchParams.get("search");
+    const showOnHomepage = searchParams.get("showOnHomepage");
 
     // Build query
     const query: any = {};
@@ -17,6 +19,11 @@ export async function GET(request: NextRequest) {
     // Filter by status
     if (status && status !== "all") {
       query.status = status;
+    }
+
+    // Filter by showOnHomepage
+    if (showOnHomepage === "true") {
+      query.showOnHomepage = true;
     }
 
     // Search
@@ -40,6 +47,7 @@ export async function GET(request: NextRequest) {
       status: cat.status,
       productCount: cat.productCount || 0,
       parentId: cat.parentId?.toString(),
+      showOnHomepage: Boolean(cat.showOnHomepage),
       createdAt: cat.createdAt?.toISOString() || new Date().toISOString(),
     }));
 
@@ -63,7 +71,7 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     const body = await request.json();
-    const { name, slug, description, image, status, parentId } = body;
+    const { name, slug, description, image, status, parentId, showOnHomepage } = body;
 
     // Validation
     if (!name || !slug) {
@@ -90,10 +98,14 @@ export async function POST(request: NextRequest) {
       image: image || "",
       status: status || "active",
       productCount: 0,
+      showOnHomepage: Boolean(showOnHomepage),
     };
 
-    if (parentId) {
-      categoryData.parentId = parentId;
+    // Handle parentId: convert empty string to null, valid ObjectId to ObjectId
+    if (parentId && parentId !== "" && mongoose.Types.ObjectId.isValid(parentId)) {
+      categoryData.parentId = new mongoose.Types.ObjectId(parentId);
+    } else {
+      categoryData.parentId = null;
     }
 
     const newCategory = await Category.create(categoryData);
@@ -107,6 +119,7 @@ export async function POST(request: NextRequest) {
       status: newCategory.status,
       productCount: newCategory.productCount || 0,
       parentId: newCategory.parentId?.toString(),
+      showOnHomepage: Boolean(newCategory.showOnHomepage),
       createdAt: newCategory.createdAt?.toISOString(),
     };
 

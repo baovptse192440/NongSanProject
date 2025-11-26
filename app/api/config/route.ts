@@ -41,6 +41,8 @@ export async function GET(request: NextRequest) {
       youtube: config.youtube || "",
       googleAnalyticsId: config.googleAnalyticsId || "",
       googleTagManagerId: config.googleTagManagerId || "",
+      shippingFee: config.shippingFee ?? 10,
+      minimumOrderForFreeShipping: config.minimumOrderForFreeShipping ?? 50,
       updatedAt: config.updatedAt?.toISOString() || new Date().toISOString(),
     };
 
@@ -84,6 +86,8 @@ export async function PUT(request: NextRequest) {
       youtube,
       googleAnalyticsId,
       googleTagManagerId,
+      shippingFee,
+      minimumOrderForFreeShipping,
     } = body;
 
     // Validation
@@ -120,6 +124,8 @@ export async function PUT(request: NextRequest) {
         youtube: youtube || "",
         googleAnalyticsId: googleAnalyticsId || "",
         googleTagManagerId: googleTagManagerId || "",
+        shippingFee: shippingFee !== undefined ? shippingFee : 10,
+        minimumOrderForFreeShipping: minimumOrderForFreeShipping !== undefined ? minimumOrderForFreeShipping : 50,
       });
     } else {
       // Cập nhật config hiện tại
@@ -143,6 +149,12 @@ export async function PUT(request: NextRequest) {
       config.youtube = youtube || "";
       config.googleAnalyticsId = googleAnalyticsId || "";
       config.googleTagManagerId = googleTagManagerId || "";
+      if (shippingFee !== undefined) {
+        config.shippingFee = shippingFee;
+      }
+      if (minimumOrderForFreeShipping !== undefined) {
+        config.minimumOrderForFreeShipping = minimumOrderForFreeShipping;
+      }
       
       await config.save();
     }
@@ -169,6 +181,8 @@ export async function PUT(request: NextRequest) {
       youtube: config.youtube || "",
       googleAnalyticsId: config.googleAnalyticsId || "",
       googleTagManagerId: config.googleTagManagerId || "",
+      shippingFee: config.shippingFee ?? 10,
+      minimumOrderForFreeShipping: config.minimumOrderForFreeShipping ?? 50,
       updatedAt: config.updatedAt?.toISOString(),
     };
 

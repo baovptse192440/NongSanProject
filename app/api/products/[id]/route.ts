@@ -20,6 +20,57 @@ export async function GET(
       );
     }
 
+    let retailPrice = product.retailPrice;
+    let wholesalePrice = product.wholesalePrice;
+    let onSale = product.onSale || false;
+    let salePrice = product.salePrice || null;
+    let salePercentage = product.salePercentage || null;
+    let stock = product.stock || 0;
+
+    // If product has variants, calculate price from variants
+    if (product.hasVariants) {
+      const ProductVariant = (await import("@/models/ProductVariant")).default;
+      const variants = await ProductVariant.find({
+        productId: product._id,
+        status: "active"
+      }).lean();
+
+      if (variants.length > 0) {
+        // Calculate prices from variants
+        const variantPrices = variants.map((v: any) => {
+          const variantFinalPrice = v.onSale && v.salePrice ? v.salePrice : v.retailPrice;
+          const variantRetailPrice = v.retailPrice;
+          const variantWholesalePrice = v.wholesalePrice;
+          return {
+            retailPrice: variantRetailPrice,
+            wholesalePrice: variantWholesalePrice,
+            finalPrice: variantFinalPrice,
+            onSale: v.onSale || false,
+            stock: v.stock || 0,
+          };
+        });
+
+        // Get min price for display
+        const minPriceVariant = variantPrices.reduce((min: any, current: any) => 
+          current.finalPrice < min.finalPrice ? current : min
+        );
+        
+        retailPrice = minPriceVariant.retailPrice;
+        wholesalePrice = minPriceVariant.wholesalePrice;
+        const finalPrice = minPriceVariant.finalPrice;
+        onSale = minPriceVariant.onSale;
+        
+        // If variant is on sale, set sale price
+        if (onSale && finalPrice < retailPrice) {
+          salePrice = finalPrice;
+          salePercentage = Math.floor(((retailPrice - salePrice) / retailPrice) * 100);
+        }
+        
+        // Calculate total stock from all variants
+        stock = variantPrices.reduce((sum: number, v: any) => sum + (v.stock || 0), 0);
+      }
+    }
+
     const formattedProduct = {
       id: product._id?.toString(),
       name: product.name,
@@ -33,19 +84,20 @@ export async function GET(
         ? product.categoryId.name
         : null,
       images: product.images || [],
-      retailPrice: product.retailPrice,
-      wholesalePrice: product.wholesalePrice,
-      onSale: product.onSale || false,
-      salePrice: product.salePrice || null,
-      salePercentage: product.salePercentage || null,
+      retailPrice: retailPrice,
+      wholesalePrice: wholesalePrice,
+      onSale: onSale,
+      salePrice: salePrice,
+      salePercentage: salePercentage,
       saleStartDate: product.saleStartDate?.toISOString() || null,
       saleEndDate: product.saleEndDate?.toISOString() || null,
-      stock: product.stock || 0,
+      stock: stock,
       sku: product.sku || "",
       status: product.status,
       weight: product.weight || null,
       dimensions: product.dimensions || null,
       tags: product.tags || [],
+      hasVariants: product.hasVariants || false,
       createdAt: product.createdAt?.toISOString() || new Date().toISOString(),
       updatedAt: product.updatedAt?.toISOString() || new Date().toISOString(),
     };
@@ -93,6 +145,7 @@ export async function PUT(
       weight,
       dimensions,
       tags,
+      hasVariants,
     } = body;
 
     // Check if product exists
@@ -112,11 +165,15 @@ export async function PUT(
       );
     }
 
-    if (!retailPrice || retailPrice < 0 || !wholesalePrice || wholesalePrice < 0) {
-      return NextResponse.json(
-        { success: false, error: "Giá bán lẻ và giá đại lý phải hợp lệ và không âm" },
-        { status: 400 }
-      );
+    // Only validate pricing if product doesn't have variants
+    const useVariants = hasVariants !== undefined ? hasVariants : existingProduct.hasVariants || false;
+    if (!useVariants) {
+      if (!retailPrice || retailPrice < 0 || !wholesalePrice || wholesalePrice < 0) {
+        return NextResponse.json(
+          { success: false, error: "Giá bán lẻ và giá đại lý phải hợp lệ và không âm" },
+          { status: 400 }
+        );
+      }
     }
 
     if (!images || images.length === 0) {
@@ -144,24 +201,55 @@ export async function PUT(
     existingProduct.shortDescription = shortDescription || "";
     existingProduct.categoryId = categoryId;
     existingProduct.images = images || [];
-    existingProduct.retailPrice = parseFloat(retailPrice);
-    existingProduct.wholesalePrice = parseFloat(wholesalePrice);
-    existingProduct.onSale = onSale || false;
-    existingProduct.stock = stock !== undefined ? parseInt(stock) : 0;
-    existingProduct.status = status || existingProduct.status;
-
-    if (sku !== undefined) existingProduct.sku = sku || null;
-    if (onSale) {
-      existingProduct.salePrice = salePrice ? parseFloat(salePrice) : null;
-      existingProduct.salePercentage = salePercentage ? parseFloat(salePercentage) : null;
-      existingProduct.saleStartDate = saleStartDate ? new Date(saleStartDate) : null;
-      existingProduct.saleEndDate = saleEndDate ? new Date(saleEndDate) : null;
+    
+    // Handle hasVariants
+    if (hasVariants !== undefined) {
+      existingProduct.hasVariants = hasVariants;
+    }
+    
+    // Only update pricing/stock if no variants
+    if (!useVariants) {
+      if (retailPrice !== undefined && retailPrice !== null) {
+        existingProduct.retailPrice = parseFloat(retailPrice);
+      }
+      if (wholesalePrice !== undefined && wholesalePrice !== null) {
+        existingProduct.wholesalePrice = parseFloat(wholesalePrice);
+      }
+      existingProduct.onSale = onSale || false;
+      if (stock !== undefined && stock !== null) {
+        existingProduct.stock = parseInt(stock);
+      }
+      
+      if (onSale) {
+        if (salePrice !== undefined && salePrice !== null) {
+          existingProduct.salePrice = parseFloat(salePrice);
+        }
+        if (salePercentage !== undefined && salePercentage !== null) {
+          existingProduct.salePercentage = parseFloat(salePercentage);
+        }
+        if (saleStartDate) existingProduct.saleStartDate = new Date(saleStartDate);
+        if (saleEndDate) existingProduct.saleEndDate = new Date(saleEndDate);
+      } else {
+        existingProduct.salePrice = null;
+        existingProduct.salePercentage = null;
+        existingProduct.saleStartDate = null;
+        existingProduct.saleEndDate = null;
+      }
     } else {
+      // For products with variants, reset pricing fields or keep defaults
+      existingProduct.retailPrice = 0;
+      existingProduct.wholesalePrice = 0;
+      existingProduct.stock = 0;
+      existingProduct.onSale = false;
       existingProduct.salePrice = null;
       existingProduct.salePercentage = null;
       existingProduct.saleStartDate = null;
       existingProduct.saleEndDate = null;
     }
+    
+    existingProduct.status = status || existingProduct.status;
+
+    if (sku !== undefined) existingProduct.sku = sku || null;
     if (weight !== undefined) existingProduct.weight = weight ? parseFloat(weight) : null;
     if (dimensions) existingProduct.dimensions = dimensions;
     if (tags) existingProduct.tags = tags;
@@ -195,6 +283,7 @@ export async function PUT(
       weight: updated?.weight || null,
       dimensions: updated?.dimensions || null,
       tags: updated?.tags || [],
+      hasVariants: updated?.hasVariants || false,
       updatedAt: updated?.updatedAt?.toISOString(),
     };
 

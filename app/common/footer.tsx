@@ -1,150 +1,283 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { motion } from "framer-motion";
-import { MapPin, Building2, Mail, Phone } from "lucide-react";
+import Link from "next/link";
+import { MapPin, Building2, Mail, Phone, Facebook, Youtube, Instagram, Linkedin, Loader2 } from "lucide-react";
+
+interface SiteConfig {
+  logo?: string;
+  siteName?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  addressContact?: string;
+  warehouse?: string;
+  businessHours?: string;
+  facebook?: string;
+  youtube?: string;
+  instagram?: string;
+  linkedin?: string;
+  copyright?: string;
+}
 
 export default function FooterAU() {
-  return (
-    <footer className="w-full bg-[#0a923c] text-white pt-12 pb-8 mt-12 relative overflow-hidden">
-      {/* BACKGROUND EFFECT */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.06 }}
-        transition={{ duration: 1.2 }}
-        className="absolute inset-0 bg-[url('/pattern.png')] bg-cover bg-center pointer-events-none"
-      />
+  const [config, setConfig] = useState<SiteConfig>({});
+  const [loading, setLoading] = useState(true);
 
-      <div className="container mx-auto px-4 relative z-10">
-        {/* GRID */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"
-        >
-          {/* COLUMN 1 — COMPANY INFO */}
-          <div className="space-y-4 sm:col-span-2">
-            <div className="relative w-[160px] h-[80px] sm:w-[180px] sm:h-[90px]">
-              <Image
-                src="/logo_AU.png"
-                alt="AU logo"
-                fill
-                className="object-contain"
-                priority
-              />
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const response = await fetch("/api/config");
+        const result = await response.json();
+        if (result.success) {
+          setConfig(result.data);
+        }
+      } catch (error) {
+        console.error("Error fetching config:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchConfig();
+  }, []);
+
+  const footerLinks = {
+    account: [
+      { label: "My Account", href: "/profile" },
+      { label: "Rewards", href: "/rewards" },
+      { label: "Cart", href: "/cart" },
+      { label: "Orders", href: "/orders" },
+    ],
+    information: [
+      { label: "About Us", href: "/about" },
+      { label: "Terms & Conditions", href: "/terms" },
+      { label: "Privacy Policy", href: "/privacy" },
+      { label: "Export", href: "/export" },
+      { label: "Careers", href: "/careers" },
+    ],
+    support: [
+      { label: "Shopping Guide", href: "/guide" },
+      { label: "Return Policy", href: "/return-policy" },
+      { label: "Shipping", href: "/shipping" },
+      { label: "Contact Us", href: "/contact" },
+    ],
+  };
+
+  const socialLinks = [
+    { icon: Facebook, href: config.facebook, label: "Facebook" },
+    { icon: Youtube, href: config.youtube, label: "Youtube" },
+    { icon: Instagram, href: config.instagram, label: "Instagram" },
+    { icon: Linkedin, href: config.linkedin, label: "LinkedIn" },
+  ].filter((link) => link.href);
+
+  if (loading) {
+    return (
+      <footer className="w-full bg-[#0a923c] text-white">
+        <div className="container mx-auto px-4 sm:px-5">
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-6 h-6 animate-spin" />
+          </div>
+        </div>
+      </footer>
+    );
+  }
+
+  return (
+    <footer className="w-full bg-[#0a923c] text-white mt-12 sm:mt-16">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Main Footer Content */}
+        <div className="py-10 sm:py-12 md:py-16">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
+            {/* COLUMN 1 — COMPANY INFO */}
+            <div className="sm:col-span-2 lg:col-span-2 space-y-6">
+              {/* Logo */}
+              <div className="relative w-[140px] h-[70px] sm:w-[160px] sm:h-[80px]">
+                <Image
+                  src={config.logo || "/logo_AU.png"}
+                  alt={config.siteName || "AU Logo"}
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+
+              {/* Company Description */}
+              <p className="text-sm sm:text-base text-white/90 leading-relaxed max-w-md">
+                Your trusted partner for premium agricultural products. Quality, sustainability, and excellence in every harvest.
+              </p>
+
+              {/* Contact Info */}
+              <div className="space-y-3.5">
+                {config.address && (
+                  <ContactItem
+                    icon={<MapPin className="w-4 h-4" />}
+                    label="Business Address:"
+                    text={config.address}
+                  />
+                )}
+                {config.addressContact && (
+                  <ContactItem
+                    icon={<MapPin className="w-4 h-4" />}
+                    label="Contact Address:"
+                    text={config.addressContact}
+                  />
+                )}
+                {config.warehouse && (
+                  <ContactItem
+                    icon={<Building2 className="w-4 h-4" />}
+                    label="Warehouse:"
+                    text={config.warehouse}
+                  />
+                )}
+                {config.email && (
+                  <ContactLink
+                    icon={<Mail className="w-4 h-4" />}
+                    href={`mailto:${config.email}`}
+                    text={config.email}
+                  />
+                )}
+                {config.phone && (
+                  <ContactLink
+                    icon={<Phone className="w-4 h-4" />}
+                    href={`tel:${config.phone.replace(/\s/g, "")}`}
+                    text={`${config.phone}${config.businessHours ? ` (${config.businessHours})` : ""}`}
+                    bold
+                  />
+                )}
+              </div>
+
+              {/* Social Media */}
+              {socialLinks.length > 0 && (
+                <div className="flex items-center gap-3 pt-2">
+                  {socialLinks.map((social, index) => {
+                    const Icon = social.icon;
+                    return (
+                      <a
+                        key={index}
+                        href={social.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all duration-200 hover:scale-110 hover:shadow-lg"
+                        aria-label={social.label}
+                      >
+                        <Icon className="w-5 h-5 text-white" />
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            <div className="space-y-2 text-xs leading-relaxed">
-              <FooterItem
-                icon={<MapPin className="w-4 h-4 text-white/80" />}
-                text="Địa chỉ ĐKKD: Tầng 1, Tòa nhà số 109-111, Xã Bình Hưng, TP. Hồ Chí Minh, Việt Nam"
-              />
-              <FooterItem
-                icon={<MapPin className="w-4 h-4 text-white/80" />}
-                text="Địa chỉ liên hệ: 262/3 Lũy Bán Bích, Quận Tân Phú, TP. Hồ Chí Minh"
-              />
-              <FooterItem
-                icon={<Building2 className="w-4 h-4 text-white/80" />}
-                text="Kho Tân Phú: 284/11 Lũy Bán Bích, Quận Tân Phú"
-              />
-              <FooterItemLink
-                icon={<Mail className="w-4 h-4 text-white/80" />}
-                href="mailto:info@au.vn"
-                text="info@au.vn"
-              />
-              <FooterItemLink
-                icon={<Phone className="w-4 h-4 text-white/80" />}
-                href="tel:02877702614"
-                text="02877702614 (8h00 - 18h00)"
-                bold
-              />
+            {/* COLUMN 2 — ACCOUNT */}
+            <FooterColumn
+              title="Account"
+              items={footerLinks.account}
+            />
+
+            {/* COLUMN 3 — INFORMATION */}
+            <FooterColumn
+              title="Information"
+              items={footerLinks.information}
+            />
+
+            {/* COLUMN 4 — SUPPORT */}
+            <FooterColumn
+              title="Support"
+              items={footerLinks.support}
+            />
+          </div>
+        </div>
+
+        {/* Bottom Bar */}
+        <div className="border-t border-white/20 py-6 sm:py-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-xs sm:text-sm text-white/80 text-center sm:text-left">
+              {config.copyright || `© ${new Date().getFullYear()} ${config.siteName || "AU"}. All rights reserved.`}
+            </p>
+            <div className="flex items-center gap-6 text-xs sm:text-sm text-white/80">
+              <Link href="/terms" className="hover:text-white transition-colors">
+                Terms
+              </Link>
+              <Link href="/privacy" className="hover:text-white transition-colors">
+                Privacy
+              </Link>
+              <Link href="/sitemap" className="hover:text-white transition-colors">
+                Sitemap
+              </Link>
             </div>
           </div>
-
-          {/* COLUMN 2 — ACCOUNT */}
-          <FooterList
-            title="TÀI KHOẢN"
-            items={["Tài khoản của tôi", "Điểm thưởng", "Giỏ hàng"]}
-          />
-
-          {/* COLUMN 3 — INFO */}
-          <FooterList
-            title="THÔNG TIN"
-            items={["Về AU", "Điều khoản", "Bảo mật", "Xuất khẩu", "Tuyển dụng"]}
-          />
-        </motion.div>
-
-        {/* COPYRIGHT */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 1 }}
-          className="text-center text-white/80 text-xs mt-10 pt-6 border-t border-white/20"
-        >
-          <p>© AU 2025. All rights reserved.</p>
-        </motion.div>
+        </div>
       </div>
     </footer>
   );
 }
 
 /* -------------------------------- */
-/* REUSABLE SUB COMPONENTS          */
+/* REUSABLE COMPONENTS              */
 /* -------------------------------- */
 
-type FooterItemProps = {
-  icon?: React.ReactNode;
+type ContactItemProps = {
+  icon: React.ReactNode;
+  label: string;
   text: string;
 };
 
-function FooterItem({ icon, text }: FooterItemProps) {
+function ContactItem({ icon, label, text }: ContactItemProps) {
   return (
-    <div className="flex items-start gap-2.5 sm:gap-3 opacity-90">
-      <div className="flex-shrink-0">{icon}</div>
-      <span className="text-xs sm:text-sm">{text}</span>
+    <div className="flex items-start gap-3 text-sm sm:text-base">
+      <div className="shrink-0 mt-0.5 text-white/90">{icon}</div>
+      <div className="flex-1">
+        <span className="font-semibold text-white/90 mr-2">{label}</span>
+        <span className="text-white/80 leading-relaxed">{text}</span>
+      </div>
     </div>
   );
 }
 
-type FooterItemLinkProps = {
-  icon?: React.ReactNode;
+type ContactLinkProps = {
+  icon: React.ReactNode;
   text: string;
-  href?: string;
+  href: string;
   bold?: boolean;
 };
 
-function FooterItemLink({ icon, text, href, bold }: FooterItemLinkProps) {
+function ContactLink({ icon, text, href, bold }: ContactLinkProps) {
   return (
     <a
-      href={href ?? "#"}
-      className="flex items-center gap-2.5 sm:gap-3 hover:text-white opacity-90 transition-all"
+      href={href}
+      className="flex items-center gap-3 text-sm sm:text-base hover:text-white transition-colors group"
     >
-      <div className="flex-shrink-0">{icon}</div>
-      <span className={bold ? "font-semibold text-xs sm:text-sm" : "text-xs sm:text-sm"}>{text}</span>
+      <div className="shrink-0 text-white/90 group-hover:text-white transition-colors">{icon}</div>
+      <span className={`text-white/80 group-hover:text-white transition-colors ${bold ? "font-semibold" : "font-medium"}`}>
+        {text}
+      </span>
     </a>
   );
 }
 
-function FooterList({ title, items }: { title: string; items: string[] }) {
+type FooterColumnProps = {
+  title: string;
+  items: Array<{ label: string; href: string }>;
+};
+
+function FooterColumn({ title, items }: FooterColumnProps) {
   return (
-    <div className="mt-6 sm:mt-0">
-      <h3 className="font-semibold text-sm mb-3 pb-2 border-b border-white/25">
+    <div>
+      <h3 className="font-bold text-sm sm:text-base mb-4 sm:mb-5 pb-3 border-b border-white/20">
         {title}
       </h3>
-
-      <ul className="space-y-2 text-xs sm:text-sm">
+      <ul className="space-y-2.5 sm:space-y-3">
         {items.map((item, i) => (
-          <motion.li
-            key={i}
-            whileHover={{ x: 4 }}
-            transition={{ duration: 0.18 }}
-            className="cursor-pointer text-white/80 hover:text-white transition"
-          >
-            {item}
-          </motion.li>
+          <li key={i}>
+            <Link
+              href={item.href}
+              className="text-sm sm:text-base text-white/80 hover:text-white transition-all duration-200 hover:translate-x-1 inline-block"
+            >
+              {item.label}
+            </Link>
+          </li>
         ))}
       </ul>
     </div>

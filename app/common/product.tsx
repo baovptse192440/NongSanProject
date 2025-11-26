@@ -1,304 +1,478 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import Image from "next/image";
-import { motion } from "framer-motion";
-import { CircleChevronLeft, CircleChevronRight, ShoppingCart, Star, TrendingUp, Sparkles, Store, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation } from "swiper/modules";
+import type { Swiper as SwiperType } from "swiper";
+import { ChevronLeft, ChevronRight, ShoppingCart, Star, Loader2 } from "lucide-react";
+
+// Import Swiper styles
+import "swiper/css";
+import "swiper/css/navigation";
+
+interface ApiProduct {
+  id: string;
+  name: string;
+  slug: string;
+  images: string[];
+  retailPrice: number;
+  wholesalePrice: number;
+  onSale: boolean;
+  salePrice: number | null;
+  salePercentage: number | null;
+  stock: number;
+  status: string;
+  categoryId: string | null;
+  categoryName: string | null;
+  createdAt: string;
+}
+
+interface Product {
+  id: string;
+  slug: string;
+  img: string;
+  name: string;
+  sold: number;
+  price: number;
+  oldPrice: number;
+  discount: number;
+  rating: number;
+  reviews: number;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  image?: string;
+  showOnHomepage?: boolean;
+}
+
+interface CategoryWithProducts {
+  category: Category;
+  products: Product[];
+  loading: boolean;
+}
 
 export default function ProductSection() {
-  const [activeTab, setActiveTab] = useState("new");
-  const products = [
-    { id: 1, img: "/sp/1.jpg", name: "Cam Nam Phi - Nông Sản Fruits", sold: 707, price: "78,000 ₫", oldPrice: "200,000 ₫", discount: "-61%", rating: 4.5, reviews: 24 },
-    { id: 2, img: "/sp/2.jpg", name: "Kẹo Dynamite BigBang Vị Socola Bạc Hà - Gói 120g", sold: 999, price: "60,000 ₫", oldPrice: "100,000 ₫", discount: "-40%", rating: 4.8, reviews: 156 },
-    { id: 3, img: "/sp/3.jpg", name: "Thùng 24 Ly Trà Sữa (12 Oolong Nướng)", sold: 658, price: "310,000 ₫", oldPrice: "360,000 ₫", discount: "-14%", rating: 4.6, reviews: 89 },
-    { id: 4, img: "/sp/4.jpg", name: "Cà Phê Cappuccino Sữa Dừa Hoà Tan - UFO Coffee", sold: 707, price: "259,000 ₫", oldPrice: "400,000 ₫", discount: "-35%", rating: 4.9, reviews: 203 },
-    { id: 5, img: "/sp/5.jpg", name: "Cà Phê Cappuccino Sữa Dừa [Đà Nẵng] - UFO Coffee", sold: 60, price: "55,000 ₫", oldPrice: "90,000 ₫", discount: "-39%", rating: 4.7, reviews: 45 },
-    { id: 6, img: "/sp/5.jpg", name: "Mật Ong Rừng U Minh Hạ - Chai 500ml", sold: 450, price: "180,000 ₫", oldPrice: "250,000 ₫", discount: "-28%", rating: 4.8, reviews: 112 },
-  ];
+  const [newProducts, setNewProducts] = useState<Product[]>([]);
+  const [newProductsLoading, setNewProductsLoading] = useState(true);
+  const [categoriesWithProducts, setCategoriesWithProducts] = useState<CategoryWithProducts[]>([]);
+  const swiperRef1 = useRef<SwiperType | null>(null);
 
- const carouselRef = useRef<HTMLDivElement>(null);
+  // Format price in AUD (Australian Dollar) - price is already in AUD
+  const formatPrice = (price: number): string => {
+    return "$" + price.toLocaleString("en-AU", { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    });
+  };
 
-const scroll = (direction: "left" | "right") => {
-  if (carouselRef.current) {
-    const scrollAmount = direction === "left" ? -260 : 260;
-    carouselRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
-  }
-};
+  // Convert API product to display format
+  const convertApiProduct = (apiProduct: ApiProduct): Product => {
+    const mainImage = apiProduct.images && apiProduct.images.length > 0 
+      ? apiProduct.images[0] 
+      : "/sp/1.jpg";
+    
+    // Determine final price (sale price if on sale, otherwise retail price)
+    const finalPrice = apiProduct.onSale && apiProduct.salePrice 
+      ? apiProduct.salePrice 
+      : apiProduct.retailPrice;
+    
+    // Old price only shows when product is on sale
+    const oldPrice = apiProduct.onSale && apiProduct.salePrice 
+      ? apiProduct.retailPrice 
+      : apiProduct.retailPrice;
+    
+    // Calculate discount percentage
+    const discount = apiProduct.onSale && apiProduct.salePercentage 
+      ? apiProduct.salePercentage 
+      : (apiProduct.onSale && apiProduct.salePrice && apiProduct.retailPrice
+          ? Math.floor(((apiProduct.retailPrice - apiProduct.salePrice) / apiProduct.retailPrice) * 100)
+          : 0);
 
+    return {
+      id: apiProduct.id,
+      slug: apiProduct.slug,
+      img: mainImage,
+      name: apiProduct.name,
+      sold: Math.floor(Math.random() * 1000), // TODO: Get from API if available
+      price: finalPrice,
+      oldPrice: oldPrice,
+      discount: discount,
+      rating: 4.0 + Math.random() * 1, // TODO: Get from API if available (4.0 to 5.0)
+      reviews: Math.floor(Math.random() * 200), // TODO: Get from API if available
+    };
+  };
 
-  const ProductCard = ({ product }: { product: typeof products[0] }) => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35 }}
-      className="flex-shrink-0 w-[180px] sm:w-[200px] md:w-[220px] lg:w-[220px]"
-    >
-      <div className="bg-white gap-2 w-56 rounded-xs shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 group cursor-pointer flex flex-col h-full">
-        <div className="relative w-full h-[150px] sm:h-[180px] overflow-hidden bg-gray-50">
+  // Fetch 10 newest products
+  useEffect(() => {
+    const fetchNewProducts = async () => {
+      try {
+        setNewProductsLoading(true);
+        const response = await fetch("/api/products?status=active&limit=10&page=1");
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+          const convertedProducts = result.data.map(convertApiProduct);
+          setNewProducts(convertedProducts);
+        }
+      } catch (error) {
+        console.error("Error fetching new products:", error);
+      } finally {
+        setNewProductsLoading(false);
+      }
+    };
+
+    fetchNewProducts();
+  }, []);
+
+  // Fetch categories with showOnHomepage and their products
+  useEffect(() => {
+    const fetchCategoriesWithProducts = async () => {
+      try {
+        // Fetch all categories
+        const categoriesResponse = await fetch("/api/categories?status=active");
+        const categoriesResult = await categoriesResponse.json();
+        
+        if (categoriesResult.success && categoriesResult.data) {
+          // Filter categories with showOnHomepage = true
+          const homeCategories: Category[] = categoriesResult.data.filter(
+            (cat: Category & { showOnHomepage?: boolean }) => cat.showOnHomepage === true
+          );
+
+          // Fetch products for each category
+          const categoriesData: CategoryWithProducts[] = await Promise.all(
+            homeCategories.map(async (category) => {
+              try {
+                const productsResponse = await fetch(
+                  `/api/products?status=active&categoryId=${category.id}&limit=10&page=1`
+                );
+                const productsResult = await productsResponse.json();
+                
+                const products = productsResult.success && productsResult.data
+                  ? productsResult.data.map(convertApiProduct)
+                  : [];
+
+                return {
+                  category,
+                  products,
+                  loading: false,
+                };
+              } catch (error) {
+                console.error(`Error fetching products for category ${category.id}:`, error);
+                return {
+                  category,
+                  products: [],
+                  loading: false,
+                };
+              }
+            })
+          );
+
+          setCategoriesWithProducts(categoriesData);
+        }
+      } catch (error) {
+        console.error("Error fetching categories with products:", error);
+      }
+    };
+
+    fetchCategoriesWithProducts();
+  }, []);
+
+  const ProductCard = ({ product }: { product: Product }) => (
+    <Link href={`/product/${product.slug}`} className="h-full">
+      <div className="bg-white rounded-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 group cursor-pointer flex flex-col h-full">
+        {/* Image */}
+        <div className="relative w-full h-[140px] sm:h-40 md:h-[180px] overflow-hidden bg-gray-50">
           <Image
             src={product.img}
             alt={product.name}
             fill
-            className="object-cover group-hover:scale-105 transition-all duration-500"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           />
-          <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-0.5 rounded text-[10px] font-semibold border border-white">
-            {product.discount}
+          {product.discount > 0 && (
+            <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-0.5 rounded-sm text-[10px] font-bold border-white shadow-md">
+              -{product.discount}%
           </div>
+          )}
         </div>
 
-        <div className="p-3 sm:p-4 flex flex-col flex-1 justify-between">
-          <h3 className="font-medium text-[13px] sm:text-[15px] text-gray-900 line-clamp-2 min-h-[38px] group-hover:text-green-700 transition-colors">
+        {/* Content */}
+        <div className="p-2 md:p-4 flex flex-col flex-1 justify-between">
+          <h3 className="font-semibold text-xs sm:text-[13px] md:text-[15px] text-gray-700 line-clamp-2 transition-colors duration-200 mb-2 group-hover:text-[#0a923c]">
             {product.name}
           </h3>
 
-          <div className="mt-2">
-            <div className="flex items-center gap-0">
+          {/* Rating & Sold */}
+          <div className="mb-1 md:mb-3">
+            <div className="flex items-center gap-1 mb-2">
               {[...Array(5)].map((_, i) => (
                 <Star
                   key={i}
-                  size={20}
-                  className={i < Math.floor(product.rating) ? "fill-yellow-400 text-white" : "fill-yellow-400 text-white"}
+                  size={14}
+                  className={`${
+                    i < Math.floor(product.rating)
+                      ? "fill-yellow-400 text-yellow-400"
+                      : "fill-gray-200 text-gray-200"
+                  } transition-colors`}
                 />
               ))}
-              <span className="text-xs text-[#0a923c] ml-1">({product.reviews})</span>
+              <span className="text-xs text-[#10723a] font-medium ml-1">
+                ({product.reviews})
+              </span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-              <TrendingUp className="w-4 h-4 text-green-600" strokeWidth={1} />
-              <span>{product.sold} đã bán</span>
+            <div className="flex items-center gap-1.5 text-sm text-gray-500 font-light md:text-[#10723a]">
+              <span>{product.sold} Đã bán</span>
             </div>
           </div>
 
-          <div className="flex justify-between pt-2 border-t border-gray-200 mt-2">
-            <div className="w-[50%]">
-            <p className="text-green-700 font-semibold text-lg mb-1">{product.price}</p>
-            <p className="line-through text-gray-400 text-sm">{product.oldPrice}</p>
-           
+          {/* Price & Add to Cart */}
+          <div className="flex items-end justify-between pt-1 md:pt-3 md:border-t md:border-gray-100">
+            <div className="flex-1">
+              <p className="text-[#10723a] font-bold text-base sm:text-lg mb-1">
+                {formatPrice(product.price)}
+              </p>
+              {product.discount > 0 && product.oldPrice > product.price && (
+                <p className="line-through text-gray-400 text-xs sm:text-sm">
+                  {formatPrice(product.oldPrice)}
+                </p>
+              )}
               </div>
-              <div className="flex items-center justify-end w-[50%] ">
-                 <motion.button
-            whileTap={{ scale: 0.95 }}
-            className="flex items-center justify-center w-[50%] border rounded-sm cursor-pointer text-green-600 py-2  hover:bg-[#0A923C] hover:text-white text-sm font-semibold transition-all shadow-sm"
+                 <button
+              onClick={(e) => {
+                e.preventDefault();
+                // Add to cart logic
+              }}
+              className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-sm border border-[#0a923c] bg-white text-[#0a923c] hover:bg-[#0a923c] hover:text-white transition-all duration-300 shadow-sm hover:shadow-md active:scale-95"
           >
-            <ShoppingCart size={20} strokeWidth={2} />
-           
-          </motion.button>
-              </div>
+              <ShoppingCart size={20} strokeWidth={1.5} className="cursor-pointer" />
+          </button>
           </div>
-
-          
         </div>
       </div>
-    </motion.div>
+    </Link>
   );
 
-  return (
-    <div className="container mx-auto px-5 py-10">
-      {/* PRODUCT CAROUSEL */}
-      <div className="relative bg-white rounded-xs shadow-md p-3 sm:p-5 border border-gray-200">
-         <div className="absolute left-0 top-0 flex bg-white rounded-xs w-[40%]  overflow-x-auto no-scrollbar  mb-5 border-white">
-        {[
-          { id: "new", label: "SẢN PHẨM MỚI", icon: <Sparkles size={16} /> },
-          { id: "bestseller", label: "BÁN CHẠY", icon: <TrendingUp size={16} /> },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 px-5 py-3 text-sm font-semibold transition-all ${
-              activeTab === tab.id
-                ? "bg-[#10723a] text-white shadow-inner hover: cursor-pointer"
-                : "bg-gray-50 text-[#10723a] hover:bg-[#10723a] hover:text-white cursor-pointer"
-            }`}
+  const CategoryProductSection = ({ categoryData }: { categoryData: CategoryWithProducts }) => {
+    const { category, products, loading } = categoryData;
+    const swiperRef = useRef<SwiperType | null>(null);
+
+    return (
+      <div className="relative bg-white rounded-xs mt-6 sm:mt-8 md:mt-10 shadow-md p-3 sm:p-4 md:p-5 border border-gray-200">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center w-full border-b border-gray-200 pb-4 sm:pb-5 gap-3 sm:gap-0">
+          <div className="font-semibold text-sm sm:text-base pl-2 sm:pl-5">
+            {category.name}
+          </div>
+          <Link
+            href={`/category/${category.slug}`}
+            className="flex font-semibold items-center text-xs sm:text-sm text-[#0a923c] hover:underline"
           >
-            <div className="flex items-center justify-center gap-2">{tab.icon}{tab.label}</div>
-          </button>
-        ))}
-      </div>
-        <button
-          onClick={() => scroll("left")}
-          className="hidden hover:cursor-pointer sm:flex absolute left-0 top-1/2 -translate-y-1/2 w-10 h-10 items-center justify-center z-10"
-        >
-          <CircleChevronLeft size={25} className="text-gray-500 hover:text-green-600 transition-colors" />
-        </button>
-
-        <div
-          ref={carouselRef}
-          className="flex gap-5 sm:gap-5 overflow-x-hidden scroll-smooth cursor-pointer no-scrollbar pt-12 pb-2 pl-2 sm:pl-0 pr-2 sm:pr-0"
-        >
-          {products.map((p) => <ProductCard key={p.id} product={p} />)}
+            Xem All
+            <ChevronRight size={14} className="sm:w-4 sm:h-4" />
+          </Link>
         </div>
 
-        <button
-          onClick={() => scroll("right")}
-          className="hidden hover:cursor-pointer sm:flex absolute right-0 top-1/2 -translate-y-1/2 w-10 h-10 items-center justify-center z-10"
-        >
-          <CircleChevronRight size={25} className="text-gray-500  hover:text-green-600 transition-colors" />
-        </button>
-      </div>
-      
-      
-
-      
-
-     {/* PRODUCT CAROUSEL */}
-        <div className="relative bg-white rounded-xs mt-10 shadow-md p-3 sm:p-5 border border-gray-200">
-       <div className="flex justify-between w-full border-b border-gray-200 pb-5">
-        <div className="font-semibold pl-5" >
-         Trái Cây Tươi Ngon
-        </div>
-        <div className="flex font-semibold gap-8 w-[50%]">
-          <a href="">Nội địa</a>
-          <a href="">Nội địa</a>
-          <a href="">Nội địa</a>
-        </div>
-        <div className="flex font-semibold items-center">
-          <a href="">Xem All</a>
-          <ChevronRight  size={16}/>
-        </div>
-       </div>
-     <div className="w-full mt-5 h-[198px] rounded-full overflow-hidden relative">
-  <a href="" className="block w-full h-full rounded-full">
-    <div
-      className="w-full h-full bg-center bg-cover"
-      style={{ backgroundImage: "url('/sp/1.jpg')" }}
-    ></div>
-  </a>
-</div>
-
-
-        <button
-          onClick={() => scroll("left")}
-          className="hidden hover:cursor-pointer sm:flex absolute left-0 top-175 -translate-y-1/2 w-10 h-10 items-center justify-center z-10"
-        >
-          <CircleChevronLeft size={25} className="text-gray-500 hover:text-green-600 transition-colors" />
-        </button>
-
-        <div
-          ref={carouselRef}
-          className="flex gap-2 sm:gap-5 overflow-x-hidden scroll-smooth cursor-pointer no-scrollbar pt-5 pb-2 pl-2 sm:pl-0 pr-2 sm:pr-0"
-        >
-          {products.map((p) => <ProductCard key={p.id} product={p} />)}
-        </div>
-         <div
-          ref={carouselRef}
-          className="flex gap-2 sm:gap-5 overflow-x-hidden scroll-smooth cursor-pointer no-scrollbar pt-5 pb-2 pl-2 sm:pl-0 pr-2 sm:pr-0"
-        >
-          {products.map((p) => <ProductCard key={p.id} product={p} />)}
-        </div>
-        
-        <button
-          onClick={() => scroll("right")}
-          className="hidden hover:cursor-pointer sm:flex absolute top-175  right-0 -translate-y-1/2 w-10 h-10 items-center justify-center z-10"
-        >
-          <CircleChevronRight size={25} className="text-gray-500 hover:text-green-600 transition-colors" />
-        </button>
-      </div>
-      {/* PRODUCT CAROUSEL */}
-        <div className="relative bg-white rounded-xs mt-10 shadow-md p-3 sm:p-5 border border-gray-200">
-       <div className="flex justify-between w-full border-b border-gray-200 pb-5">
-        <div className="font-semibold pl-5" >
-         Trái Cây Tươi Ngon
-        </div>
-        <div className="flex font-semibold gap-8 w-[50%]">
-          <a href="">Nội địa</a>
-          <a href="">Nội địa</a>
-          <a href="">Nội địa</a>
-        </div>
-        <div className="flex font-semibold items-center">
-          <a href="">Xem All</a>
-          <ChevronRight  size={16}/>
-        </div>
-       </div>
-     <div className="w-full mt-5 h-[198px] rounded-full overflow-hidden relative">
-  <a href="" className="block w-full h-full rounded-full">
-    <div
-      className="w-full h-full bg-center bg-cover"
-      style={{ backgroundImage: "url('/sp/1.jpg')" }}
-    ></div>
-  </a>
-</div>
-
-
-        <button
-          onClick={() => scroll("left")}
-          className="hidden hover:cursor-pointer sm:flex absolute left-0 top-175 -translate-y-1/2 w-10 h-10 items-center justify-center z-10"
-        >
-          <CircleChevronLeft size={25} className="text-gray-500 hover:text-green-600 transition-colors" />
-        </button>
-
-        <div
-          ref={carouselRef}
-          className="flex gap-2 sm:gap-5 overflow-x-hidden scroll-smooth cursor-pointer no-scrollbar pt-5 pb-2 pl-2 sm:pl-0 pr-2 sm:pr-0"
-        >
-          {products.map((p) => <ProductCard key={p.id} product={p} />)}
-        </div>
-         <div
-          ref={carouselRef}
-          className="flex gap-2 sm:gap-5 overflow-x-hidden scroll-smooth cursor-pointer no-scrollbar pt-5 pb-2 pl-2 sm:pl-0 pr-2 sm:pr-0"
-        >
-          {products.map((p) => <ProductCard key={p.id} product={p} />)}
-        </div>
-        
-        <button
-          onClick={() => scroll("right")}
-          className="hidden hover:cursor-pointer sm:flex absolute top-175  right-0 -translate-y-1/2 w-10 h-10 items-center justify-center z-10"
-        >
-          <CircleChevronRight size={25} className="text-gray-500 hover:text-green-600 transition-colors" />
-        </button>
-      </div>
-         {/* PRODUCT CAROUSEL */}
-        <div className="relative bg-white rounded-xs mt-10 shadow-md p-3 sm:p-5 border border-gray-200">
-       <div className="flex justify-between w-full border-b border-gray-200 pb-5">
-        <div className="font-semibold pl-5" >
-         Trái Cây Tươi Ngon
-        </div>
-        <div className="flex font-semibold gap-8 w-[50%]">
-          <a href="">Nội địa</a>
-          <a href="">Nội địa</a>
-          <a href="">Nội địa</a>
-        </div>
-        <div className="flex font-semibold items-center">
-          <a href="">Xem All</a>
-          <ChevronRight  size={16}/>
-        </div>
-       </div>
-     <div className="w-full mt-5 h-[198px] rounded-full overflow-hidden relative">
-  <a href="" className="block w-full h-full rounded-full">
-    <div
-      className="w-full h-full bg-center bg-cover"
-      style={{ backgroundImage: "url('/sp/1.jpg')" }}
-    ></div>
-  </a>
-</div>
-
-
-        <button
-          onClick={() => scroll("left")}
-          className="hidden hover:cursor-pointer sm:flex absolute left-0 top-175 -translate-y-1/2 w-10 h-10 items-center justify-center z-10"
-        >
-          <CircleChevronLeft size={25} className="text-gray-500 hover:text-green-600 transition-colors" />
-        </button>
-
-        <div
-          ref={carouselRef}
-          className="flex gap-2 sm:gap-5 overflow-x-hidden scroll-smooth cursor-pointer no-scrollbar pt-5 pb-2 pl-2 sm:pl-0 pr-2 sm:pr-0"
-        >
-          {products.map((p) => <ProductCard key={p.id} product={p} />)}
-        </div>
-         <div
-          ref={carouselRef}
-          className="flex gap-2 sm:gap-5 overflow-x-hidden scroll-smooth cursor-pointer no-scrollbar pt-5 pb-2 pl-2 sm:pl-0 pr-2 sm:pr-0"
-        >
-          {products.map((p) => <ProductCard key={p.id} product={p} />)}
-        </div>
-        
-        <button
-          onClick={() => scroll("right")}
-          className="hidden hover:cursor-pointer sm:flex absolute top-175  right-0 -translate-y-1/2 w-10 h-10 items-center justify-center z-10"
-        >
-          <CircleChevronRight size={25} className="text-gray-500 hover:text-green-600 transition-colors" />
-        </button>
-      </div>
+        {category.image && (
+          <div className="w-full mt-4 mb-4 sm:mt-5 h-[150px] sm:h-[180px] md:h-[198px] rounded-xl sm:rounded-full overflow-hidden relative">
+            <Link href={`/category/${category.slug}`} className="block w-full h-full rounded-full">
+              <Image
+                src={category.image}
+                alt={category.name}
+                fill
+                className="object-cover"
+                sizes="100vw"
+              />
+            </Link>
     </div>
-    
+        )}
+
+        <button
+          onClick={() => swiperRef.current?.slidePrev()}
+          className="hidden sm:flex absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white backdrop-blur-sm w-[21px] h-[21px] rounded-full shadow-lg items-center justify-center z-20 transition-all duration-300 hover:scale-110 active:scale-95 group"
+          aria-label="Previous slide"
+        >
+          <ChevronLeft 
+            size={16} 
+            className="text-gray-800 group-hover:text-gray-900 transition-colors" 
+          />
+        </button>
+
+        <Swiper
+          onSwiper={(swiper) => {
+            swiperRef.current = swiper;
+          }}
+          modules={[Navigation]}
+          spaceBetween={12}
+          slidesPerView={1.2}
+          slidesPerGroup={1}
+          speed={300}
+          watchOverflow={true}
+          observer={true}
+          observeParents={true}
+          updateOnWindowResize={true}
+          preventClicks={true}
+          preventClicksPropagation={true}
+          breakpoints={{
+            320: {
+              slidesPerView: 1.2,
+              spaceBetween: 8,
+            },
+            480: {
+              slidesPerView: 2,
+              spaceBetween: 12,
+            },
+            640: {
+              slidesPerView: 2.5,
+              spaceBetween: 16,
+            },
+            768: {
+              slidesPerView: 3,
+              spaceBetween: 20,
+            },
+            1024: {
+              slidesPerView: 4,
+              spaceBetween: 24,
+            },
+            1280: {
+              slidesPerView: 5,
+              spaceBetween: 24,
+            },
+          }}
+          className="pt-5 sm:pt-6 pb-3 sm:pb-4 pl-3 sm:pl-4 md:pl-0 pr-3 sm:pr-4 md:pr-0"
+        >
+          {loading ? (
+            <div className="flex items-center justify-center py-12 col-span-full">
+              <Loader2 className="w-8 h-8 text-[#0a923c] animate-spin" />
+            </div>
+          ) : products.length > 0 ? (
+            products.map((p) => (
+              <SwiperSlide key={p.id}>
+                <ProductCard product={p} />
+              </SwiperSlide>
+            ))
+          ) : (
+            <div className="flex items-center justify-center py-12 col-span-full">
+              <p className="text-gray-500 text-sm">Chưa có sản phẩm nào</p>
+            </div>
+          )}
+        </Swiper>
+        
+        <button
+          onClick={() => swiperRef.current?.slideNext()}
+          className="hidden sm:flex absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white backdrop-blur-sm w-[21px] h-[21px] rounded-full shadow-lg items-center justify-center z-20 transition-all duration-300 hover:scale-110 active:scale-95 group"
+          aria-label="Next slide"
+        >
+          <ChevronRight 
+            size={16} 
+            className="text-gray-800 group-hover:text-gray-900 transition-colors" 
+          />
+        </button>
+      </div>
+    );
+  };
+
+  return (
+    <div className="container mx-auto px-4 sm:px-5 py-6 sm:py-10">
+      {/* SẢN PHẨM MỚI */}
+      <div className="relative bg-white rounded-xs shadow-md p-3 sm:p-4 md:p-5 border border-gray-200">
+         <div className="flex bg-white rounded-xs w-[40%] sm:w-[35%] overflow-x-auto no-scrollbar mb-5 border-white z-10">
+          <button
+            className={`flex-1 px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold transition-all bg-[#10723a] text-white shadow-inner hover: cursor-pointer`}
+          >
+            <div className="flex items-center justify-center gap-2">SẢN PHẨM MỚI</div>
+          </button>
+      </div>
+        <button
+          onClick={() => swiperRef1.current?.slidePrev()}
+          className="hidden sm:flex absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white backdrop-blur-sm w-[21px] h-[21px] rounded-full shadow-lg items-center justify-center z-20 transition-all duration-300 hover:scale-110 active:scale-95 group"
+          aria-label="Previous slide"
+        >
+          <ChevronLeft 
+            size={16} 
+            className="text-gray-800 group-hover:text-gray-900 transition-colors" 
+          />
+        </button>
+
+        <Swiper
+          onSwiper={(swiper) => {
+            swiperRef1.current = swiper;
+          }}
+          modules={[Navigation]}
+          spaceBetween={12}
+          slidesPerView={1.2}
+          slidesPerGroup={1}
+          speed={300}
+          watchOverflow={true}
+          observer={true}
+          observeParents={true}
+          updateOnWindowResize={true}
+          preventClicks={true}
+          preventClicksPropagation={true}
+          breakpoints={{
+            320: {
+              slidesPerView: 1.2,
+              spaceBetween: 8,
+            },
+            480: {
+              slidesPerView: 2,
+              spaceBetween: 12,
+            },
+            640: {
+              slidesPerView: 2.5,
+              spaceBetween: 16,
+            },
+            768: {
+              slidesPerView: 3,
+              spaceBetween: 20,
+            },
+            1024: {
+              slidesPerView: 4,
+              spaceBetween: 24,
+            },
+            1280: {
+              slidesPerView: 5,
+              spaceBetween: 24,
+            },
+          }}
+          className="pt-12 sm:pt-14 pb-3 sm:pb-4 pl-3 sm:pl-4 md:pl-0 pr-3 sm:pr-4 md:pr-0"
+        >
+          {newProductsLoading ? (
+            <div className="flex items-center justify-center py-12 col-span-full">
+              <Loader2 className="w-8 h-8 text-[#0a923c] animate-spin" />
+            </div>
+          ) : newProducts.length > 0 ? (
+            newProducts.map((p) => (
+            <SwiperSlide key={p.id}>
+              <ProductCard product={p} />
+            </SwiperSlide>
+            ))
+          ) : (
+            <div className="flex items-center justify-center py-12 col-span-full">
+              <p className="text-gray-500 text-sm">Chưa có sản phẩm nào</p>
+            </div>
+          )}
+        </Swiper>
+
+        <button
+          onClick={() => swiperRef1.current?.slideNext()}
+          className="hidden sm:flex absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white backdrop-blur-sm w-[21px] h-[21px] rounded-full shadow-lg items-center justify-center z-20 transition-all duration-300 hover:scale-110 active:scale-95 group"
+          aria-label="Next slide"
+        >
+          <ChevronRight 
+            size={16} 
+            className="text-gray-800 group-hover:text-gray-900 transition-colors" 
+          />
+        </button>
+      </div>
+      
+      {/* CATEGORIES WITH PRODUCTS */}
+      {categoriesWithProducts.map((categoryData) => (
+        <CategoryProductSection key={categoryData.category.id} categoryData={categoryData} />
+      ))}
+    </div>
   );
 }
