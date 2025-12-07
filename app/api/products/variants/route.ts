@@ -60,7 +60,6 @@ export async function POST(request: NextRequest) {
       productId,
       name,
       sku,
-      retailPrice,
       wholesalePrice,
       stock,
       onSale,
@@ -80,9 +79,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!retailPrice || retailPrice < 0 || !wholesalePrice || wholesalePrice < 0) {
+    if (!wholesalePrice || wholesalePrice < 0) {
       return NextResponse.json(
-        { success: false, error: "Giá bán lẻ và giá đại lý phải hợp lệ và không âm" },
+        { success: false, error: "Giá đại lý phải hợp lệ và không âm" },
         { status: 400 }
       );
     }
@@ -104,7 +103,7 @@ export async function POST(request: NextRequest) {
     } = {
       productId,
       name,
-      retailPrice: parseFloat(retailPrice),
+      retailPrice: parseFloat(wholesalePrice), // Set retailPrice = wholesalePrice for backward compatibility
       wholesalePrice: parseFloat(wholesalePrice),
       stock: stock !== undefined ? parseInt(stock) : 0,
       onSale: onSale || false,

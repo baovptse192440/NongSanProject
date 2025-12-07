@@ -216,9 +216,9 @@ export async function POST(request: NextRequest) {
     // Only validate pricing if product doesn't have variants
     const useVariants = hasVariants || false;
     if (!useVariants) {
-      if (!retailPrice || retailPrice < 0 || !wholesalePrice || wholesalePrice < 0) {
+      if (!wholesalePrice || wholesalePrice < 0) {
         return NextResponse.json(
-          { success: false, error: "Giá bán lẻ và giá đại lý phải hợp lệ và không âm" },
+          { success: false, error: "Giá đại lý phải hợp lệ và không âm" },
           { status: 400 }
         );
       }
@@ -257,8 +257,9 @@ export async function POST(request: NextRequest) {
 
     // Only add pricing/stock/sale if no variants
     if (!useVariants) {
-      productData.retailPrice = parseFloat(retailPrice);
       productData.wholesalePrice = parseFloat(wholesalePrice);
+      // Set retailPrice to same as wholesalePrice for backward compatibility
+      productData.retailPrice = parseFloat(wholesalePrice);
       productData.onSale = onSale || false;
       productData.stock = stock !== undefined ? parseInt(stock) : 0;
       

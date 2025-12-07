@@ -41,7 +41,6 @@ interface ProductVariant {
   id?: string;
   name: string;
   sku: string;
-  retailPrice: string;
   wholesalePrice: string;
   stock: string;
   onSale: boolean;
@@ -73,7 +72,6 @@ export default function EditProductPage() {
     shortDescription: "",
     categoryId: "",
     images: [] as string[],
-    retailPrice: "",
     wholesalePrice: "",
     onSale: false,
     salePrice: "",
@@ -131,7 +129,6 @@ export default function EditProductPage() {
           shortDescription: product.shortDescription || "",
           categoryId: product.categoryId || "",
           images: product.images || [],
-          retailPrice: product.retailPrice?.toString() || "",
           wholesalePrice: product.wholesalePrice?.toString() || "",
           onSale: product.onSale || false,
           salePrice: product.salePrice?.toString() || "",
@@ -156,7 +153,6 @@ export default function EditProductPage() {
               id: v.id,
               name: v.name || "",
               sku: v.sku || "",
-              retailPrice: v.retailPrice?.toString() || "",
               wholesalePrice: v.wholesalePrice?.toString() || "",
               stock: v.stock?.toString() || "",
               onSale: v.onSale || false,
@@ -246,7 +242,6 @@ export default function EditProductPage() {
       {
         name: "",
         sku: "",
-        retailPrice: "",
         wholesalePrice: "",
         stock: "",
         onSale: false,
@@ -315,15 +310,15 @@ export default function EditProductPage() {
       }
       
       for (const variant of variants) {
-        if (!variant.name || !variant.retailPrice || !variant.wholesalePrice) {
-          toast.error("Lỗi", "Tất cả variants phải có tên và giá");
+        if (!variant.name || !variant.wholesalePrice) {
+          toast.error("Lỗi", "Tất cả variants phải có tên và giá đại lý");
           return;
         }
       }
     } else {
       // Validate normal product
-      if (!formData.retailPrice || !formData.wholesalePrice) {
-        toast.error("Lỗi", "Vui lòng nhập giá bán lẻ và giá đại lý");
+      if (!formData.wholesalePrice) {
+        toast.error("Lỗi", "Vui lòng nhập giá đại lý");
         return;
       }
     }
@@ -348,7 +343,6 @@ export default function EditProductPage() {
         categoryId: string;
         images: string[];
         hasVariants: boolean;
-        retailPrice?: number;
         wholesalePrice?: number;
         onSale?: boolean;
         salePrice?: number;
@@ -370,7 +364,6 @@ export default function EditProductPage() {
       };
 
       if (!hasVariants) {
-        productBody.retailPrice = parseFloat(formData.retailPrice);
         productBody.wholesalePrice = parseFloat(formData.wholesalePrice);
         productBody.onSale = formData.onSale;
         productBody.stock = parseInt(formData.stock);
@@ -405,7 +398,6 @@ export default function EditProductPage() {
             productId: string;
             name: string;
             sku?: string;
-            retailPrice: number;
             wholesalePrice: number;
             stock: number;
             onSale: boolean;
@@ -418,7 +410,6 @@ export default function EditProductPage() {
           } = {
             productId: productId,
             name: variant.name,
-            retailPrice: variant.retailPrice ? parseFloat(variant.retailPrice) : 0,
             wholesalePrice: variant.wholesalePrice ? parseFloat(variant.wholesalePrice) : 0,
             stock: variant.stock ? parseInt(variant.stock) : 0,
             onSale: variant.onSale,
@@ -708,22 +699,6 @@ export default function EditProductPage() {
 
                             <div className="space-y-2">
                               <label className="text-sm font-medium text-gray-700 block">
-                                Giá bán lẻ (AUD) <span className="text-red-500">*</span>
-                              </label>
-                              <input
-                                type="number"
-                                required
-                                step="0.01"
-                                min="0"
-                                value={variant.retailPrice}
-                                onChange={(e) => updateVariant(index, "retailPrice", e.target.value)}
-                                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0a923c]/20 focus:border-[#0a923c] transition-all"
-                                placeholder="0.00"
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium text-gray-700 block">
                                 Giá đại lý (AUD) <span className="text-red-500">*</span>
                               </label>
                               <input
@@ -787,24 +762,6 @@ export default function EditProductPage() {
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label htmlFor="retailPrice" className="text-sm font-medium text-gray-700">
-                          Giá bán lẻ (AUD) <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="number"
-                          id="retailPrice"
-                          required={!hasVariants}
-                          step="0.01"
-                          min="0"
-                          value={formData.retailPrice}
-                          onChange={(e) => setFormData({ ...formData, retailPrice: e.target.value })}
-                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0a923c]/20 focus:border-[#0a923c] transition-all"
-                          placeholder="0.00"
-                          disabled={hasVariants}
-                        />
-                      </div>
-
                       <div className="space-y-2">
                         <label htmlFor="wholesalePrice" className="text-sm font-medium text-gray-700">
                           Giá đại lý (AUD) <span className="text-red-500">*</span>

@@ -102,8 +102,8 @@ export default function AgrishowSection() {
   const trendingPosts = posts.slice(0, 6);
 
   return (
-    <div className="w-full bg-[#f5f5f7] py-6 sm:py-8 md:py-10">
-      <div className="container mx-auto px-4 sm:px-5">
+    <div className="w-full py-6 sm:py-8 md:py-10">
+      <div className="mx-auto w-full max-w-7xl pl-[0.4rem] pr-[0.4rem] md:pl-4 md:pr-4">
         <div className="flex flex-col lg:flex-row gap-4 sm:gap-5 lg:gap-6">
           {/* MAIN ARTICLE - Featured */}
           {loading ? (

@@ -113,7 +113,7 @@ export default function PostsPage() {
     <div className="min-h-screen bg-[#eeeeee] md:mt-36 mt-30">
       {/* Breadcrumb */}
       <div className="hidden md:flex bg-[#e6e6e6] border-gray-200">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3">
+        <div className="mx-auto w-full max-w-7xl pl-[0.4rem] pr-[0.4rem] md:pl-4 md:pr-4 py-3">
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Link href="/" className="hover:text-green-600 transition-colors">
               Home

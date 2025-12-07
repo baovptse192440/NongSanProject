@@ -1,245 +1,316 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import Agri from "./common/AgrishowSection";
-import Product from "./common/product";
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Navigation, Pagination, Autoplay, EffectFade } from "swiper/modules";
-import type { Swiper as SwiperType } from "swiper";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import Header from "./clients/components/Header";
+import SEO from "./clients/components/SEO";
+import AboutSection from "./clients/components/AboutSection";
+import ServicesSection from "./clients/components/ServiceCardSection";
+import ScrollSection from "./clients/components/ServicesScrollerSection";
+import TitleSection from "./clients/components/ProductTitleSection";
+import Slider from "./clients/components/ProductSlider";
+import Feedback from "./clients/components/TestimonialsSection";
+import Contact from "./clients/components/CTASection";
+import FaqSection from "./clients/components/FaqSection";
+import { ChevronLeft, ChevronRight, ArrowDown } from "lucide-react";
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
+import CoSection from "./clients/components/CooperateSection";
+import QC from "./clients/components/BrandSection";
+import New from "./clients/components/BlogSection";
+import Footer from "./clients/components/Footer";
 
-// Import Swiper styles
-import "swiper/css";
-import "swiper/css/navigation";
-import "swiper/css/pagination";
-import "swiper/css/effect-fade";
+const slides = [
+  {
+    src: "hero_banner.jpg",
+    title: "Premium Vietnamese Agricultural Products",
+    subtitle: "Connecting Vietnam's finest produce to Australia",
+  },
+  {
+    src: "hero1_banner.webp",
+    title: "Authentic Asian Specialty Foods",
+    subtitle: "Delivering authentic flavors and quality you can trust",
+  },
+  {
+    src: "hero2_banner.jpg",
+    title: "Sustainable & Trusted Partnership",
+    subtitle: "Committed to quality, transparency, and excellence",
+  },
+];
 
-interface Banner {
-  id: string;
-  type: "main" | "side";
-  image: string;
-  title?: string;
-  link?: string;
-  order: number;
-  status: "active" | "inactive";
+// Typing Effect Component
+function TypingText({ text, isActive, slideKey }: { text: string; isActive: boolean; slideKey: number }) {
+  const [displayedText, setDisplayedText] = useState("");
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (!isActive) {
+      setDisplayedText("");
+      setCurrentIndex(0);
+      return;
+    }
+
+    // Reset when slide changes
+    setDisplayedText("");
+    setCurrentIndex(0);
+  }, [slideKey, isActive]);
+
+  useEffect(() => {
+    if (!isActive || currentIndex >= text.length) return;
+
+    const timer = setTimeout(() => {
+      setDisplayedText(text.slice(0, currentIndex + 1));
+      setCurrentIndex(currentIndex + 1);
+    }, 60); // Typing speed (slower for better effect)
+    
+    return () => clearTimeout(timer);
+  }, [currentIndex, text, isActive]);
+
+  return (
+    <span>
+      {displayedText}
+      {isActive && currentIndex < text.length && (
+        <motion.span
+          animate={{ opacity: [1, 0] }}
+          transition={{ duration: 0.8, repeat: Infinity }}
+          className="inline-block w-0.5 h-5 sm:h-6 md:h-7 bg-white ml-1.5 align-middle"
+        />
+      )}
+    </span>
+  );
 }
 
 export default function Home() {
-  const swiperRef = useRef<SwiperType | null>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [mainBanners, setMainBanners] = useState<Banner[]>([]);
-  const [sideBanners, setSideBanners] = useState<Banner[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [current, setCurrent] = useState(0);
+  const [scrollY, setScrollY] = useState(0);
 
-  // Fetch banners from API
   useEffect(() => {
-    const fetchBanners = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch("/api/banners?status=active");
-        const result = await response.json();
-        if (result.success && result.data) {
-          const banners: Banner[] = result.data;
-          // Filter and sort main banners
-          const main = banners
-            .filter((b) => b.type === "main")
-            .sort((a, b) => a.order - b.order);
-          // Filter and sort side banners (only 2)
-          const side = banners
-            .filter((b) => b.type === "side")
-            .sort((a, b) => a.order - b.order)
-            .slice(0, 2);
-          setMainBanners(main);
-          setSideBanners(side);
-        }
-      } catch (error) {
-        console.error("Error fetching banners:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchBanners();
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const prevSlide = () => {
+    setCurrent((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
+  };
+
+  const nextSlide = () => {
+    setCurrent((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+  };
+
+  const scrollToContent = () => {
+    window.scrollTo({ top: window.innerHeight, behavior: "smooth" });
+  };
+
+  // Structured Data for Home Page
+  const homeStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "AusGlobal Connection",
+    url: "https://globalconnection.vn",
+    logo: "https://globalconnection.vn/logo_AU.png",
+    description: "Trusted importer and distributor of premium Vietnamese agricultural products and authentic Asian specialty foods in Australia.",
+    address: {
+      "@type": "PostalAddress",
+      addressCountry: "AU",
+      addressLocality: "Australia",
+    },
+    contactPoint: {
+      "@type": "ContactPoint",
+      telephone: "+61-415-616-789",
+      contactType: "Customer Service",
+      areaServed: "AU",
+      availableLanguage: ["en", "vi"],
+    },
+    sameAs: [
+      "https://www.facebook.com/MEETMOREAUSTRALIA",
+      "https://globalconnection.vn/",
+    ],
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: "4.8",
+      reviewCount: "500",
+    },
+  };
+
+  const productStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    itemListElement: [
+      {
+        "@type": "Product",
+        name: "Vietnamese Coffee",
+        description: "Premium Vietnamese coffee beans and specialty coffee products",
+        category: "Coffee",
+      },
+      {
+        "@type": "Product",
+        name: "Fresh Agricultural Products",
+        description: "High-quality Vietnamese agricultural products",
+        category: "Agricultural Products",
+      },
+      {
+        "@type": "Product",
+        name: "Asian Specialty Foods",
+        description: "Authentic Asian specialty foods and ingredients",
+        category: "Food Products",
+      },
+    ],
+  };
+
   return (
-    <div className="min-h-screen bg-[#f5f5f7]">
-      {/* HERO BANNER + RIGHT COLUMN */}
-      <div className="container mx-auto px-4 sm:px-5 py-4 sm:py-6 md:py-8 mt-30 pb-0">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-5">
-          {/* MAIN BANNER (3 cột) */}
-          <div className="col-span-1 lg:col-span-3 relative w-full h-[250px] sm:h-[320px] lg:h-[400px] rounded-sm overflow-hidden shadow-lg">
-            {loading ? (
-              <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                <Loader2 className="w-8 h-8 text-[#0a923c] animate-spin" />
-              </div>
-            ) : mainBanners.length > 0 ? (
-            <Swiper
-              onSwiper={(swiper: SwiperType) => {
-                swiperRef.current = swiper;
-                setActiveIndex(swiper.realIndex);
-              }}
-              onSlideChange={(swiper: SwiperType) => {
-                setActiveIndex(swiper.realIndex);
-              }}
-              modules={[Navigation, Pagination, Autoplay, EffectFade]}
-              effect="fade"
-              fadeEffect={{ crossFade: true }}
-              spaceBetween={0}
-              slidesPerView={1}
-                loop={mainBanners.length > 1}
-              autoplay={{
-                delay: 4000,
-                disableOnInteraction: false,
-                pauseOnMouseEnter: true,
-              }}
-              speed={800}
-              pagination={false}
-              className="h-full w-full"
-            >
-                {mainBanners.map((banner, index) => (
-                  <SwiperSlide key={banner.id}>
-                    {banner.link ? (
-                      <Link href={banner.link} className="relative w-full h-full block">
-                        <Image
-                          src={banner.image}
-                          alt={banner.title || `Banner ${index + 1}`}
-                          fill
-                          className="object-cover"
-                          priority={index === 0}
-                          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 66vw, 75vw"
-                        />
-                      </Link>
-                    ) : (
-                  <div className="relative w-full h-full">
-                    <Image
-                          src={banner.image}
-                          alt={banner.title || `Banner ${index + 1}`}
-                      fill
-                      className="object-cover"
-                      priority={index === 0}
-                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 66vw, 75vw"
-                    />
-                  </div>
-                    )}
-                </SwiperSlide>
-              ))}
-            </Swiper>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                <p className="text-gray-500 text-sm">Chưa có banner</p>
-              </div>
-            )}
+    <main className="relative overflow-x-hidden">
+      <SEO
+        title="Premium Vietnamese Agricultural Products & Asian Foods in Australia"
+        description="AusGlobal Connection imports and distributes premium Vietnamese agricultural products and authentic Asian specialty foods across Australia. Quality guaranteed, authentic flavors, reliable service."
+        canonical="https://globalconnection.vn"
+        ogImage="/hero_banner.jpg"
+        structuredData={[homeStructuredData, productStructuredData]}
+      />
+      <Header />
 
-            {/* CUSTOM PAGINATION - Apple style */}
-            {mainBanners.length > 1 && !loading && (
-              <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-20">
-                <div className="flex gap-2 items-center bg-black/20 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                  {mainBanners.map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => {
-                        swiperRef.current?.slideToLoop(i);
-                        setActiveIndex(i);
-                      }}
-                      className={`h-1.5 rounded-full transition-all duration-300 ${
-                        activeIndex === i
-                          ? "bg-white w-6 shadow-sm" 
-                          : "bg-white/50 w-1.5 hover:bg-white/70"
-                      }`}
-                      aria-label={`Go to slide ${i + 1}`}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {/* Navigation buttons - only show if more than 1 banner */}
-            {mainBanners.length > 1 && !loading && (
-              <>
-            <button
-              onClick={() => swiperRef.current?.slidePrev()}
-              className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white backdrop-blur-sm w-6 h-6 sm:w-8 sm:h-8 rounded-full shadow-lg flex items-center justify-center z-20 transition-all duration-300 hover:scale-110 active:scale-95 group"
-              aria-label="Previous slide"
-            >
-              <ChevronLeft 
-                size={24} 
-                className="text-gray-800 group-hover:text-gray-900 transition-colors" 
-              />
-            </button>
+      {/* Hero Slider - Enhanced */}
+      <div className="relative h-screen w-full overflow-hidden">
+        {/* All slides rendered for seamless transition */}
+        {slides.map((slide, index) => (
+          <motion.div
+            key={index}
+            initial={false}
+            animate={{
+              opacity: index === current ? 1 : 0,
+              scale: index === current ? 1 : 1.05,
+            }}
+            transition={{ duration: 1.2, ease: "easeInOut" }}
+            className="absolute inset-0"
+            style={{ zIndex: index === current ? 1 : 0 }}
+          >
+            {/* Background Image with Slower Parallax */}
+            <motion.img
+              src={slide.src}
+              alt={`${slide.title} - ${slide.subtitle}`}
+              className="w-full h-full object-cover"
+              style={{
+                transform: `translateY(${scrollY * 0.15}px) scale(1.05)`,
+              }}
+            />
 
-            <button
-              onClick={() => swiperRef.current?.slideNext()}
-              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white backdrop-blur-sm w-6 h-6 sm:w-8 sm:h-8 rounded-full shadow-lg flex items-center justify-center z-20 transition-all duration-300 hover:scale-110 active:scale-95 group"
-              aria-label="Next slide"
-            >
-              <ChevronRight 
-                size={24} 
-                className="text-gray-800 group-hover:text-gray-900 transition-colors" 
-              />
-            </button>
-              </>
-            )}
-          </div>
+            {/* Simple Modern Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-green-900/20 via-transparent to-yellow-900/15"></div>
+          </motion.div>
+        ))}
 
-          {/* RIGHT COLUMN (SMALL BANNERS) - Hidden on mobile */}
-          <div className="hidden lg:flex lg:flex-col col-span-1 h-[400px] gap-4">
-            {loading ? (
-              <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-sm">
-                <Loader2 className="w-6 h-6 text-[#0a923c] animate-spin" />
-              </div>
-            ) : sideBanners.length > 0 ? (
-              sideBanners.map((banner, index) => (
-                <div
-                  key={banner.id}
-                  className="relative flex-1 min-h-0 rounded-sm overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 group"
-                >
-                  {banner.link ? (
-                    <Link href={banner.link} className="relative w-full h-full block">
-              <Image 
-                        src={banner.image}
-                        alt={banner.title || `Banner phụ ${index + 1}`}
-                fill
-                className="object-cover group-hover:scale-105 transition-transform duration-300" 
-                sizes="25vw"
-              />
-                    </Link>
-                  ) : (
-                    <div className="relative w-full h-full">
-              <Image 
-                        src={banner.image}
-                        alt={banner.title || `Banner phụ ${index + 1}`}
-                fill
-                className="object-cover group-hover:scale-105 transition-transform duration-300" 
-                sizes="25vw"
-              />
-            </div>
-                  )}
-                </div>
-              ))
-            ) : (
-              // Placeholder if no side banners
-              Array.from({ length: 2 }).map((_, index) => (
-                <div
-                  key={`placeholder-${index}`}
-                  className="relative flex-1 min-h-0 rounded-sm overflow-hidden shadow-lg bg-gray-100 flex items-center justify-center"
-                >
-                  <p className="text-xs text-gray-400">Banner phụ {index + 1}</p>
-                </div>
-              ))
-            )}
-          </div>
-          
+        {/* Center Content - Enhanced with Typing Effect */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center px-4 text-center z-10">
+          {slides.map((slide, index) => (
+            <motion.div
+              key={index}
+              initial={false}
+              animate={{
+                opacity: index === current ? 1 : 0,
+                y: index === current ? 0 : 20,
+              }}
+              transition={{ duration: 1, ease: "easeInOut" }}
+              className="absolute max-w-4xl"
+              style={{ pointerEvents: index === current ? "auto" : "none" }}
+            >
+              {/* Title with Typing Effect - Simple & Modern */}
+              <motion.h1
+                className="text-white font-semibold leading-tight text-2xl sm:text-3xl md:text-4xl lg:text-5xl mb-3 sm:mb-4"
+                style={{
+                  textShadow: "0 2px 20px rgba(0,0,0,0.5), 0 0 30px rgba(34, 197, 94, 0.2), 0 0 40px rgba(250, 204, 21, 0.15)",
+                }}
+              >
+                <TypingText text={slide.title} isActive={index === current} slideKey={index} />
+              </motion.h1>
+              
+              {/* Subtitle - Simple & Clean */}
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ 
+                  opacity: index === current ? 1 : 0,
+                  y: index === current ? 0 : 10
+                }}
+                transition={{ delay: slide.title.length * 0.05 + 0.3, duration: 0.6 }}
+                className="text-white/90 text-sm sm:text-base md:text-lg max-w-2xl mx-auto leading-relaxed"
+                style={{
+                  textShadow: "0 2px 15px rgba(0,0,0,0.4), 0 0 20px rgba(34, 197, 94, 0.15)",
+                }}
+              >
+                {slide.subtitle}
+              </motion.p>
+            </motion.div>
+          ))}
         </div>
+
+        {/* Navigation Arrows - Simple & Modern */}
+        <motion.button
+          onClick={prevSlide}
+          whileHover={{ scale: 1.1, x: -3 }}
+          whileTap={{ scale: 0.95 }}
+          className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-green-500/30 backdrop-blur-md shadow-md transition-all p-2.5 md:p-3 rounded-full z-20 border border-white/20 hover:border-green-400/50"
+        >
+          <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-white" />
+        </motion.button>
+
+        <motion.button
+          onClick={nextSlide}
+          whileHover={{ scale: 1.1, x: 3 }}
+          whileTap={{ scale: 0.95 }}
+          className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-yellow-500/30 backdrop-blur-md shadow-md transition-all p-2.5 md:p-3 rounded-full z-20 border border-white/20 hover:border-yellow-400/50"
+        >
+          <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-white" />
+        </motion.button>
+
+        {/* Dot Indicators - Simple & Modern */}
+        <div className="absolute bottom-6 md:bottom-10 w-full flex justify-center gap-2.5 z-20">
+          {slides.map((_, idx) => (
+            <motion.button
+              key={idx}
+              onClick={() => setCurrent(idx)}
+              whileHover={{ scale: 1.2 }}
+              whileTap={{ scale: 0.9 }}
+              className={`
+                h-2 rounded-full cursor-pointer transition-all duration-300
+                ${idx === current 
+                  ? "bg-white w-8 md:w-10 shadow-md" 
+                  : "bg-white/40 hover:bg-white/60 w-2"
+                }
+              `}
+            />
+          ))}
+        </div>
+
+        {/* Scroll Indicator - Simple & Modern */}
+        <motion.button
+          onClick={scrollToContent}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1, duration: 0.8 }}
+          whileHover={{ y: 5 }}
+          className="absolute bottom-8 md:bottom-12 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 text-white/80 hover:text-white transition-colors"
+        >
+          <span className="text-xs font-medium tracking-wider uppercase">Scroll</span>
+          <motion.div
+            animate={{ y: [0, 8, 0] }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+            className="w-6 h-10 border-2 border-white/40 rounded-full flex justify-center pt-2 backdrop-blur-sm hover:border-white/60 transition-colors"
+          >
+            <ArrowDown className="w-4 h-4 text-white" />
+          </motion.div>
+        </motion.button>
       </div>
 
-      {/* PRODUCT SECTION */}
-      <Product />
-
-      {/* AGRISHOW SECTION */}
-      <Agri />
-    </div>
+     <AboutSection></AboutSection>
+      <ServicesSection></ServicesSection>
+      <ScrollSection></ScrollSection>
+      <TitleSection></TitleSection>
+      <Slider></Slider>
+      <Feedback></Feedback>
+      <Contact></Contact>
+      <FaqSection></FaqSection>
+      <QC></QC>
+      <CoSection></CoSection>
+      <New></New>
+      <Footer></Footer>
+    </main>
   );
 }

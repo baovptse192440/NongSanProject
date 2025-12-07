@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -57,6 +58,16 @@ interface CategoryWithProducts {
 }
 
 export default function ProductSection() {
+  const pathname = usePathname();
+  const isAgencyRoute = pathname?.startsWith("/agency");
+  
+  // Helper function to add /agency prefix if in agency route
+  const getAgencyPath = (path: string) => {
+    if (isAgencyRoute && !path.startsWith("/agency") && !path.startsWith("http")) {
+      return `/agency${path}`;
+    }
+    return path;
+  };
   const [newProducts, setNewProducts] = useState<Product[]>([]);
   const [newProductsLoading, setNewProductsLoading] = useState(true);
   const [categoriesWithProducts, setCategoriesWithProducts] = useState<CategoryWithProducts[]>([]);
@@ -183,7 +194,7 @@ export default function ProductSection() {
   }, []);
 
   const ProductCard = ({ product }: { product: Product }) => (
-    <Link href={`/product/${product.slug}`} className="h-full">
+    <Link href={getAgencyPath(`/product/${product.slug}`)} className="h-full">
       <div className="bg-white rounded-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 group cursor-pointer flex flex-col h-full">
         {/* Image */}
         <div className="relative w-full h-[140px] sm:h-40 md:h-[180px] overflow-hidden bg-gray-50">
@@ -376,7 +387,7 @@ export default function ProductSection() {
   };
 
   return (
-    <div className="container mx-auto px-4 sm:px-5 py-6 sm:py-10">
+    <div className="mx-auto w-full max-w-7xl pl-[0.4rem] pr-[0.4rem] md:pl-4 md:pr-4 py-6 sm:py-10">
       {/* SẢN PHẨM MỚI */}
       <div className="relative bg-white rounded-xs shadow-md p-3 sm:p-4 md:p-5 border border-gray-200">
          <div className="flex bg-white rounded-xs w-[40%] sm:w-[35%] overflow-x-auto no-scrollbar mb-5 border-white z-10">

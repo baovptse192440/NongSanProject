@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { getSiteConfig } from "@/lib/getConfig";
-import MobileBottomNav from "./common/MobileBottomNav";
 import ClientLayout from "./components/ClientLayout";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -87,7 +86,7 @@ export default async function RootLayout({
           />
         )}
       </head>
-      <body className="antialiased pb-20 lg:pb-0">
+      <body className="antialiased pb-20 lg:pb-0 bg-white">
         {config.googleTagManagerId && (
           <noscript>
             <iframe
@@ -101,7 +100,6 @@ export default async function RootLayout({
         <ClientLayout>
           {children}
         </ClientLayout>
-        <MobileBottomNav />
       </body>
     </html>
   );

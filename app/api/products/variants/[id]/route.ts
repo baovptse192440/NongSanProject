@@ -15,7 +15,6 @@ export async function PUT(
     const {
       name,
       sku,
-      retailPrice,
       wholesalePrice,
       stock,
       onSale,
@@ -51,8 +50,8 @@ export async function PUT(
     }
 
     existingVariant.name = name;
-    existingVariant.retailPrice = parseFloat(retailPrice);
     existingVariant.wholesalePrice = parseFloat(wholesalePrice);
+    existingVariant.retailPrice = parseFloat(wholesalePrice); // Set retailPrice = wholesalePrice for backward compatibility
     existingVariant.stock = stock !== undefined ? parseInt(stock) : 0;
     existingVariant.onSale = onSale || false;
     existingVariant.status = status || existingVariant.status;

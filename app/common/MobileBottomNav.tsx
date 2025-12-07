@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import {
   Home,
   Grid3x3,
-  Newspaper,
   ShoppingCart,
   User,
 } from "lucide-react";
@@ -28,20 +27,58 @@ export default function MobileBottomNav() {
     role?: string;
   } | null>(null);
 
-  // Load cart count
-  const loadCartCount = () => {
+  // Load cart count from API
+  const loadCartCount = async () => {
     try {
-      const savedCart = localStorage.getItem("cart");
-      if (savedCart) {
-        const items: Array<{ quantity?: number }> = JSON.parse(savedCart);
-        const total = items.reduce((sum: number, item: { quantity?: number }) => sum + (item.quantity || 0), 0);
-        setCartCount(total);
+      const token = localStorage.getItem("token");
+      if (token) {
+        // Load from API if logged in
+        const response = await fetch("/api/cart", {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data && Array.isArray(result.data)) {
+            const totalItems = result.data.reduce(
+              (sum: number, item: { quantity?: number }) => sum + (item.quantity || 0),
+              0
+            );
+            setCartCount(totalItems);
+          } else {
+            setCartCount(0);
+          }
+        } else {
+          setCartCount(0);
+        }
       } else {
-        setCartCount(0);
+        // Fallback to localStorage if not logged in
+        const savedCart = localStorage.getItem("cart");
+        if (savedCart) {
+          const items: Array<{ quantity?: number }> = JSON.parse(savedCart);
+          const total = items.reduce((sum: number, item: { quantity?: number }) => sum + (item.quantity || 0), 0);
+          setCartCount(total);
+        } else {
+          setCartCount(0);
+        }
       }
     } catch (error) {
       console.error("Error loading cart count:", error);
-      setCartCount(0);
+      // Fallback to localStorage on error
+      try {
+        const savedCart = localStorage.getItem("cart");
+        if (savedCart) {
+          const items: Array<{ quantity?: number }> = JSON.parse(savedCart);
+          const total = items.reduce((sum: number, item: { quantity?: number }) => sum + (item.quantity || 0), 0);
+          setCartCount(total);
+        } else {
+          setCartCount(0);
+        }
+      } catch {
+        setCartCount(0);
+      }
     }
   };
 
@@ -84,17 +121,23 @@ export default function MobileBottomNav() {
     };
     const handleUserLogin = () => {
       loadUser();
+      loadCartCount();
     };
     const handleUserUpdate = () => {
       setTimeout(() => {
         loadUser();
       }, 100);
     };
+    const handleUserLogout = () => {
+      setUser(null);
+      setCartCount(0);
+    };
 
     window.addEventListener("cartUpdated", handleCartUpdate);
     window.addEventListener("storage", handleCartUpdate);
     window.addEventListener("userLoggedIn", handleUserLogin);
     window.addEventListener("userUpdated", handleUserUpdate);
+    window.addEventListener("userLoggedOut", handleUserLogout);
 
     return () => {
       clearTimeout(timer);
@@ -102,35 +145,42 @@ export default function MobileBottomNav() {
       window.removeEventListener("storage", handleCartUpdate);
       window.removeEventListener("userLoggedIn", handleUserLogin);
       window.removeEventListener("userUpdated", handleUserUpdate);
+      window.removeEventListener("userLoggedOut", handleUserLogout);
     };
   }, []);
 
-  // Build nav items dynamically based on user state
+  // Check if we're in agency routes
+  const isAgencyRoute = pathname?.startsWith("/agency");
+
+  // Helper function to get agency path
+  const getAgencyPath = (path: string) => {
+    if (isAgencyRoute) {
+      return path.startsWith("/agency") ? path : `/agency${path === "/" ? "" : path}`;
+    }
+    return path;
+  };
+
+  // Build nav items dynamically based on user state and route
   const navItems: NavItem[] = [
     {
-      href: "/",
+      href: getAgencyPath("/"),
       icon: Home,
       label: "",
     },
     {
-      href: "/category",
+      href: getAgencyPath("/category"),
       icon: Grid3x3,
       label: "",
     },
     {
-      href: "/post",
-      icon: Newspaper,
-      label: "",
-    },
-    {
-      href: "/cart",
+      href: getAgencyPath("/cart"),
       icon: ShoppingCart,
       label: "",
       badge: cartCount,
       showBadge: true,
     },
     {
-      href: user ? "/profile" : "/login",
+      href: user ? getAgencyPath("/profile") : "/login",
       icon: User,
       label: user ? "" : "",
     },
@@ -142,15 +192,15 @@ export default function MobileBottomNav() {
       <div className="absolute inset-0 bg-white/95 backdrop-blur-2xl border-t border-gray-200/60 shadow-[0_-2px_20px_rgba(0,0,0,0.05)]" />
       
       {/* Content */}
-      <div className="relative px-1 py-2.5 safe-area-bottom mb-[10px]">
+      <div className="relative px-1 py-2.5 safe-area-bottom">
         <div className="flex items-center justify-around max-w-md mx-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
-            // Better active state logic
+            // Better active state logic - handle both /agency and non-agency routes
             const isActive = 
-              item.href === "/" 
-                ? pathname === "/"
-                : pathname?.startsWith(item.href);
+              item.href === "/" || item.href === "/agency"
+                ? pathname === "/" || pathname === "/agency"
+                : pathname === item.href || pathname?.startsWith(item.href + "/");
             
             return (
               <Link

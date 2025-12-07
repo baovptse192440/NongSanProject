@@ -51,7 +51,6 @@ interface Product {
   categoryId: string;
   categoryName: string;
   images: string[];
-  retailPrice: number;
   wholesalePrice: number;
   onSale: boolean;
   salePrice: number | null;
@@ -97,7 +96,6 @@ export default function ProductsPage() {
     shortDescription: "",
     categoryId: "",
     images: [] as string[],
-    retailPrice: "",
     wholesalePrice: "",
     onSale: false,
     salePrice: "",
@@ -251,7 +249,6 @@ export default function ProductsPage() {
       shortDescription: product.shortDescription || "",
       categoryId: product.categoryId,
       images: product.images || [],
-      retailPrice: product.retailPrice.toString(),
       wholesalePrice: product.wholesalePrice.toString(),
       onSale: product.onSale || false,
       salePrice: product.salePrice?.toString() || "",
@@ -336,7 +333,6 @@ export default function ProductsPage() {
         shortDescription: string;
         categoryId: string;
         images: string[];
-        retailPrice: number;
         wholesalePrice: number;
         onSale: boolean;
         stock: number;
@@ -353,7 +349,6 @@ export default function ProductsPage() {
         shortDescription: formData.shortDescription,
         categoryId: formData.categoryId,
         images: formData.images,
-        retailPrice: parseFloat(formData.retailPrice),
         wholesalePrice: parseFloat(formData.wholesalePrice),
         onSale: formData.onSale,
         stock: parseInt(formData.stock),
@@ -631,7 +626,6 @@ export default function ProductsPage() {
                   <SortableHeader sortKey="images">Hình</SortableHeader>
                   <SortableHeader sortKey="name">Tên</SortableHeader>
                   <SortableHeader sortKey="categoryName">Danh mục</SortableHeader>
-                  <SortableHeader sortKey="retailPrice">Giá bán lẻ</SortableHeader>
                   <SortableHeader sortKey="wholesalePrice">Giá đại lý</SortableHeader>
                   <SortableHeader sortKey="stock">Kho</SortableHeader>
                   <SortableHeader sortKey="status">Trạng thái</SortableHeader>
@@ -643,7 +637,7 @@ export default function ProductsPage() {
               <tbody className="divide-y divide-gray-100">
                 {sortedProducts.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="text-center py-10">
+                    <td colSpan={8} className="text-center py-10">
                       <div className="flex flex-col items-center justify-center">
                         <Package className="h-10 w-10 text-gray-300 mb-2" />
                         <p className="text-xs font-medium text-gray-500">
@@ -720,20 +714,15 @@ export default function ProductsPage() {
                                 {formatPriceAUD(product.salePrice)}
                               </p>
                               <p className="text-xs text-gray-400 line-through">
-                                {formatPriceAUD(product.retailPrice)}
+                                {formatPriceAUD(product.wholesalePrice)}
                               </p>
                             </>
                           ) : (
                             <p className="text-sm font-semibold text-gray-900">
-                              {formatPriceAUD(product.retailPrice)}
+                              {formatPriceAUD(product.wholesalePrice)}
                             </p>
                           )}
                         </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="text-sm font-medium text-gray-900">
-                          {formatPriceAUD(product.wholesalePrice)}
-                        </p>
                       </td>
                       <td className="px-4 py-3">
                         <span className={`text-sm font-medium ${
@@ -1085,23 +1074,6 @@ export default function ProductsPage() {
                   <h3 className="text-sm font-semibold text-gray-900 border-b border-gray-100 pb-2">Giá cả (AUD)</h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label htmlFor="retailPrice" className="text-sm font-medium text-gray-700">
-                        Giá bán lẻ (AUD) <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        id="retailPrice"
-                        required
-                        step="0.01"
-                        min="0"
-                        value={formData.retailPrice}
-                        onChange={(e) => setFormData({ ...formData, retailPrice: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0a923c]/20 focus:border-[#0a923c] transition-all"
-                        placeholder="0.00"
-                      />
-                    </div>
-
                     <div className="space-y-2">
                       <label htmlFor="wholesalePrice" className="text-sm font-medium text-gray-700">
                         Giá đại lý (AUD) <span className="text-red-500">*</span>

@@ -170,9 +170,9 @@ export async function PUT(
     // Only validate pricing if product doesn't have variants
     const useVariants = hasVariants !== undefined ? hasVariants : existingProduct.hasVariants || false;
     if (!useVariants) {
-      if (!retailPrice || retailPrice < 0 || !wholesalePrice || wholesalePrice < 0) {
+      if (!wholesalePrice || wholesalePrice < 0) {
         return NextResponse.json(
-          { success: false, error: "Giá bán lẻ và giá đại lý phải hợp lệ và không âm" },
+          { success: false, error: "Giá đại lý phải hợp lệ và không âm" },
           { status: 400 }
         );
       }
@@ -211,12 +211,11 @@ export async function PUT(
     
     // Only update pricing/stock if no variants
     if (!useVariants) {
-      if (retailPrice !== undefined && retailPrice !== null) {
-        existingProduct.retailPrice = parseFloat(retailPrice);
-      }
       if (wholesalePrice !== undefined && wholesalePrice !== null) {
         existingProduct.wholesalePrice = parseFloat(wholesalePrice);
       }
+      // Set retailPrice to 0 or same as wholesalePrice for backward compatibility
+      existingProduct.retailPrice = parseFloat(wholesalePrice) || 0;
       existingProduct.onSale = onSale || false;
       if (stock !== undefined && stock !== null) {
         existingProduct.stock = parseInt(stock);

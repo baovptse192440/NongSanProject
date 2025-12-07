@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import {
   CircleUserRound,
   ShoppingCart,
-  Waypoints,
-  CloudDownload,
   Store,
   Search,
   Menu,
@@ -16,6 +15,7 @@ import {
   X,
   Bell,
   LogOut,
+  User
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 interface SiteConfig {
@@ -48,23 +48,101 @@ interface Category {
 }
 
 export default function Header() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const pathname = usePathname();
+  const isAgencyRoute = pathname?.startsWith("/agency");
+  
+  // Helper function to add /agency prefix if in agency route
+  const getAgencyPath = (path: string) => {
+    if (isAgencyRoute && !path.startsWith("/agency") && !path.startsWith("http")) {
+      return `/agency${path}`;
+    }
+    return path;
+  };
+  
   const [config, setConfig] = useState<SiteConfig>({});
   const [menus, setMenus] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [hoverCategoryMenu, setHoverCategoryMenu] = useState(false);
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
-  const [expandedMenuId, setExpandedMenuId] = useState<string | null>(null);
-  const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>(null);
+  const [categoryProducts, setCategoryProducts] = useState<Array<{
+    id: string;
+    name: string;
+    slug: string;
+    image: string;
+    price: number;
+  }>>([]);
+  const [loadingCategoryProducts, setLoadingCategoryProducts] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [user, setUser] = useState<{
     fullName?: string;
     email?: string;
     role?: string;
   } | null>(null);
+
+  // Load cart count function (can be called from anywhere)
+  const loadCartCount = async () => {
+    try {
+      // If user is logged in, load from API
+      const currentUser = user || (typeof window !== "undefined" ? JSON.parse(localStorage.getItem("user") || "null") : null);
+      if (currentUser) {
+        const token = localStorage.getItem("token");
+        if (token) {
+          try {
+            const response = await fetch("/api/cart", {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            });
+            const result = await response.json();
+            if (result.success && result.data) {
+              const total = result.data.reduce((sum: number, item: { quantity?: number }) => sum + (item.quantity || 0), 0);
+              setCartCount(total);
+              return;
+            }
+          } catch (error) {
+            console.error("Error loading cart from API:", error);
+          }
+        }
+      }
+      
+      // Fallback to localStorage for non-logged in users
+      const savedCart = localStorage.getItem("cart");
+      if (savedCart) {
+        const items: Array<{ quantity?: number }> = JSON.parse(savedCart);
+        const total = items.reduce((sum: number, item: { quantity?: number }) => sum + (item.quantity || 0), 0);
+        setCartCount(total);
+      } else {
+        setCartCount(0);
+      }
+    } catch (error) {
+      console.error("Error loading cart count:", error);
+      setCartCount(0);
+    }
+  };
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showLangMenu, setShowLangMenu] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
+  const [searchSuggestions, setSearchSuggestions] = useState<{
+    products: Array<{
+      id: string;
+      name: string;
+      slug: string;
+      image: string;
+      price: number;
+    }>;
+    categories: Array<{
+      id: string;
+      name: string;
+      slug: string;
+    }>;
+  }>({ products: [], categories: [] });
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [popularSearches, setPopularSearches] = useState<string[]>([]);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [notifications, setNotifications] = useState<Array<{
     id: string;
     title: string;
@@ -77,7 +155,6 @@ export default function Header() {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   // STATE DROPDOWN KHO HÀNG
-  const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState("Tân Phú");
 
   // STATE MEGA MENU DESKTOP
@@ -126,18 +203,6 @@ export default function Header() {
       }
     };
 
-    const loadCartCount = () => {
-      try {
-        const savedCart = localStorage.getItem("cart");
-        if (savedCart) {
-          const items: Array<{ quantity?: number }> = JSON.parse(savedCart);
-          const total = items.reduce((sum: number, item: { quantity?: number }) => sum + (item.quantity || 0), 0);
-          setCartCount(total);
-        }
-      } catch (error) {
-        console.error("Error loading cart count:", error);
-      }
-    };
 
     loadUser();
     loadCartCount();
@@ -146,9 +211,20 @@ export default function Header() {
     const handleCartUpdate = () => {
       loadCartCount();
     };
+    
+    // Reload cart count when user logs in
+    const handleUserLoginForCart = () => {
+      setTimeout(() => {
+        loadCartCount();
+      }, 500);
+    };
 
     const handleUserLogin = () => {
       loadUser();
+      // Reload cart count after user login
+      setTimeout(() => {
+        loadCartCount();
+      }, 500);
     };
 
     const handleUserUpdate = () => {
@@ -233,13 +309,16 @@ export default function Header() {
       if (showUserMenu && !target.closest('.user-menu-dropdown')) {
         setShowUserMenu(false);
       }
+      if (showLangMenu && !target.closest('.language-dropdown')) {
+        setShowLangMenu(false);
+      }
     };
 
-    if (showNotifications || showUserMenu) {
+    if (showNotifications || showUserMenu || showLangMenu) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [showNotifications, showUserMenu]);
+  }, [showNotifications, showUserMenu, showLangMenu]);
 
   const handleMarkAsRead = async (notificationId?: string) => {
     if (!user) return;
@@ -391,112 +470,423 @@ export default function Header() {
     fetchCategories();
   }, []);
 
+  // Load recent searches from localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("recentSearches");
+      if (saved) {
+        try {
+          setRecentSearches(JSON.parse(saved));
+        } catch (error) {
+          console.error("Error loading recent searches:", error);
+        }
+      }
+      // Set popular searches (could be from API later)
+      setPopularSearches(["vegetables", "fruits", "organic", "fresh", "local"]);
+    }
+  }, []);
+
+  // Save search query to recent searches
+  const saveSearchHistory = (query: string) => {
+    if (typeof window !== "undefined" && query.trim()) {
+      const current = JSON.parse(localStorage.getItem("recentSearches") || "[]");
+      const updated = [query.trim(), ...current.filter((q: string) => q !== query.trim())].slice(0, 5);
+      localStorage.setItem("recentSearches", JSON.stringify(updated));
+      setRecentSearches(updated);
+    }
+  };
+
+  // Fetch products when hovering over a category
+  useEffect(() => {
+    const fetchCategoryProducts = async () => {
+      if (!hoveredCategoryId) {
+        setCategoryProducts([]);
+        return;
+      }
+
+      setLoadingCategoryProducts(true);
+      try {
+        const response = await fetch(`/api/products?categoryId=${hoveredCategoryId}&limit=8&status=active`);
+        const result = await response.json();
+        if (result.success && result.data) {
+          const products = result.data.map((product: {
+            id: string;
+            name: string;
+            slug: string;
+            images: string[];
+            retailPrice: number;
+            salePrice: number | null;
+            onSale: boolean;
+          }) => ({
+            id: product.id,
+            name: product.name,
+            slug: product.slug,
+            image: product.images && product.images.length > 0 ? product.images[0] : "/sp/1.jpg",
+            price: product.onSale && product.salePrice ? product.salePrice : product.retailPrice,
+          }));
+          setCategoryProducts(products);
+        }
+      } catch (error) {
+        console.error("Error fetching category products:", error);
+        setCategoryProducts([]);
+      } finally {
+        setLoadingCategoryProducts(false);
+      }
+    };
+
+    fetchCategoryProducts();
+  }, [hoveredCategoryId]);
+
+  // Fetch search suggestions with debounce
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      // If no query or less than 2 characters, clear suggestions but keep dropdown open
+      if (!searchQuery.trim() || searchQuery.length < 1) {
+        setSearchSuggestions({ products: [], categories: [] });
+        setLoadingSuggestions(false);
+        return;
+      }
+
+      if (searchQuery.trim().length < 2) {
+        setSearchSuggestions({ products: [], categories: [] });
+        setLoadingSuggestions(false);
+        return;
+      }
+
+      setLoadingSuggestions(true);
+      try {
+        // Fetch products
+        const productsResponse = await fetch(`/api/products?status=active&search=${encodeURIComponent(searchQuery.trim())}&limit=5`);
+        const productsResult = await productsResponse.json();
+
+        // Filter categories from existing categories list (client-side search)
+        const queryLower = searchQuery.trim().toLowerCase();
+        const filteredCategories = categories
+          .filter((cat) => cat.name.toLowerCase().includes(queryLower))
+          .slice(0, 5)
+          .map((category) => ({
+            id: category.id,
+            name: category.name,
+            slug: category.slug,
+          }));
+
+        const suggestions = {
+          products: (productsResult.success && productsResult.data ? productsResult.data : []).map((product: {
+            id: string;
+            name: string;
+            slug: string;
+            images: string[];
+            retailPrice: number;
+            salePrice: number | null;
+            onSale: boolean;
+          }) => ({
+            id: product.id,
+            name: product.name,
+            slug: product.slug,
+            image: product.images && product.images.length > 0 ? product.images[0] : "/sp/1.jpg",
+            price: product.onSale && product.salePrice ? product.salePrice : product.retailPrice,
+          })),
+          categories: filteredCategories,
+        };
+
+        setSearchSuggestions(suggestions);
+      } catch (error) {
+        console.error("Error fetching search suggestions:", error);
+        setSearchSuggestions({ products: [], categories: [] });
+      } finally {
+        setLoadingSuggestions(false);
+      }
+    };
+
+    // Debounce: Wait 300ms after user stops typing
+    const timeoutId = setTimeout(fetchSuggestions, 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, categories]);
+
+  // Highlight search term in text
+  const highlightText = (text: string, query: string) => {
+    if (!query.trim()) return text;
+    const regex = new RegExp(`(${query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const parts = text.split(regex);
+    return parts.map((part, index) =>
+      regex.test(part) ? (
+        <mark key={index} className="bg-yellow-200 text-gray-900 px-0.5 rounded">
+          {part}
+        </mark>
+      ) : (
+        part
+      )
+    );
+  };
+
   return (
-    <header className="fixed top-0 left-0 w-full z-50 bg-white shadow-md">
-      {/* ▬▬▬ TOP BAR ▬▬▬ */}
-      <div className="hidden md:flex bg-[#10723a] text-white h-[35px]">
-        <div className="container mx-auto px-4 flex justify-end items-center space-x-6 text-sm">
-          <div className="flex items-center space-x-1">
-            <span>HOTLINE</span>
-            <a
-              href={`tel:${config.phone || "0786457401"}`}
-              className="font-bold hover:text-yellow-300 transition"
-            >
-              {config.phone || "0786457401"}
-            </a>
-          </div>
+    <header className="fixed top-0 left-0 w-full z-50 bg-white shadow-sm">
+      {/* ▬▬▬ MAIN HEADER - AliExpress Style ▬▬▬ */}
+      <div className="bg-white">
+        <div className="mx-auto w-full max-w-7xl pl-[0.4rem] pr-[0.4rem] md:pl-4 md:pr-4">
+          <div className="flex items-center justify-between h-16 md:h-20">
+            {/* LOGO - Left */}
+            <div className="shrink-0">
+              <Link href="/agency" className="flex items-center">
+                {config.logo ? (
+                  <Image
+                    src={config.logo}
+                    alt={config.siteName || "Logo"}
+                    width={140}
+                    height={50}
+                    className="h-10 md:h-12 w-auto object-contain"
+                  />
+                ) : (
+                  <motion.img
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.4 }}
+                    src="/logo_AU.png"
+                    className="h-10 md:h-12 w-auto"
+                    alt="AU Logo"
+                  />
+                )}
+              </Link>
+            </div>
 
-          <button className="flex items-center space-x-1 hover:text-yellow-300 transition">
-            <CloudDownload size={16} />
-            <span>Download App</span>
-          </button>
-
-          <Link
-            href="/cong-tac-vien"
-            className="flex items-center space-x-1 hover:text-yellow-300 transition"
-          >
-            <Waypoints size={16} />
-            <span>For Partners</span>
-          </Link>
-        </div>
-      </div>
-
-      {/* ▬▬▬ MAIN HEADER ▬▬▬ */}
-      <div className="bg-[#0a923c] text-white h-full flex items-center">
-        <div className="container mx-auto px-4 flex items-center justify-between">
-          {/* LOGO */}
-          <div className="flex justify-start my-2">
-            <Link href="/" className="flex items-center ">
-              {config.logo ? (
-                <Image
-                  src={config.logo}
-                  alt={config.siteName || "Logo"}
-                  width={120}
-                  height={50}
-                  className="w-[120px] h-[50px] object-contain"
-                />
-              ) : (
-                <motion.img
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.4 }}
-                  src="/logo_AU.png"
-                  className="w-[120px] h-[40px]"
-                  alt="AU Logo"
-                />
-              )}
-            </Link>
-          </div>
-
-          {/* SEARCH DESKTOP */}
-          <div className="hidden md:flex justify-end flex-1 ">
-            <form 
-              className="flex"
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (searchQuery.trim()) {
-                  window.location.href = `/category?search=${encodeURIComponent(searchQuery.trim())}`;
-                }
-              }}
-            >
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search products, posts..."
-                className="flex-1 w-[280px] h-[30px] px-4 py-2 bg-white rounded-l-sm text-gray-800 outline-none"
-              />
-              <button 
-                type="submit"
-                className="bg-white px-4 rounded-r-sm flex justify-center items-center hover:bg-gray-50 transition-colors"
+            {/* SEARCH BAR - Center (Large) */}
+            <div className="hidden md:flex flex-1 max-w-2xl mx-8 relative">
+              <form 
+                className="flex w-full"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (searchQuery.trim()) {
+                    saveSearchHistory(searchQuery);
+                    setShowSearchSuggestions(false);
+                    window.location.href = getAgencyPath(`/category?search=${encodeURIComponent(searchQuery.trim())}`);
+                  }
+                }}
               >
-                <Search size={20} className="text-green-700" />
-              </button>
-            </form>
-          </div>
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setShowSearchSuggestions(true);
+                    }}
+                    onFocus={() => {
+                      setShowSearchSuggestions(true);
+                    }}
+                    onBlur={() => {
+                      // Delay to allow click on suggestions
+                      setTimeout(() => setShowSearchSuggestions(false), 200);
+                    }}
+                    placeholder="Search products, posts..."
+                    className="w-full h-9 pl-4 pr-14 py-2 bg-white border border-black rounded-3xl text-gray-800 outline-none"
+                  />
+                  {/* Search Button Inside Input */}
+                  <button 
+                    type="submit"
+                    className="absolute right-0 top-1/2 -translate-y-1/2 h-[30px] mr-1 p-1 w-10 text-white rounded-2xl bg-black transition-all flex items-center justify-center"
+                    title="Search"
+                  >
+                    <Search size={18} />
+                  </button>
+                </div>
+              </form>
 
-          {/* ACTION BUTTONS */}
-          <div className="flex gap-4 items-center text-sm pl-4">
-            {/* Notifications - Only show if user is logged in */}
-            {user && (
-              <div className="relative notification-dropdown">
-                <button
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  className="relative p-2 hover:bg-white/10 rounded-lg transition-colors"
-                >
-                  <Bell className="w-[24px] h-[24px] text-white" />
-                  {unreadNotifications > 0 && (
-                    <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-xs font-semibold rounded-full flex items-center justify-center">
-                      {unreadNotifications > 9 ? "9+" : unreadNotifications}
-                    </span>
-                  )}
-                </button>
+              {/* SEARCH SUGGESTIONS DROPDOWN */}
+              <AnimatePresence>
+                {showSearchSuggestions && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 max-h-[500px] overflow-y-auto z-50"
+                  >
+                    {loadingSuggestions && searchQuery.trim().length >= 2 ? (
+                      <div className="p-6 text-center">
+                        <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-[#0a923c]"></div>
+                      </div>
+                    ) : searchQuery.trim().length >= 2 && (searchSuggestions.products.length > 0 || searchSuggestions.categories.length > 0) ? (
+                      <div className="py-1">
+                        {/* Categories */}
+                        {searchSuggestions.categories.length > 0 && (
+                          <div className="border-b border-gray-100">
+                            <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wide">Categories</div>
+                            {searchSuggestions.categories.map((category) => (
+                              <Link
+                                key={category.id}
+                                href={getAgencyPath(`/category/${category.slug}`)}
+                                onClick={() => {
+                                  setShowSearchSuggestions(false);
+                                  saveSearchHistory(searchQuery);
+                                  setSearchQuery("");
+                                }}
+                                className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 transition-colors"
+                              >
+                                <Search size={14} className="text-gray-400 shrink-0" />
+                                <span className="text-xs text-gray-700">{highlightText(category.name, searchQuery)}</span>
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Products */}
+                        {searchSuggestions.products.length > 0 && (
+                          <div>
+                            <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wide">Products</div>
+                            {searchSuggestions.products.map((product) => (
+                              <Link
+                                key={product.id}
+                                href={getAgencyPath(`/product/${product.slug}`)}
+                                onClick={() => {
+                                  setShowSearchSuggestions(false);
+                                  saveSearchHistory(searchQuery);
+                                  setSearchQuery("");
+                                }}
+                                className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 transition-colors group"
+                              >
+                                <div className="w-10 h-10 rounded overflow-hidden shrink-0 bg-gray-100">
+                                  <Image
+                                    src={product.image}
+                                    alt={product.name}
+                                    width={40}
+                                    height={40}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                  />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs text-gray-900 line-clamp-1">
+                                    {highlightText(product.name, searchQuery)}
+                                  </p>
+                                  <p className="text-xs font-bold text-[#0a923c] mt-0.5">
+                                    ${product.price.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </p>
+                                </div>
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* View All Results */}
+                        {searchQuery.trim() && (searchSuggestions.products.length > 0 || searchSuggestions.categories.length > 0) && (
+                          <div className="border-t border-gray-100 mt-1">
+                            <Link
+                              href={getAgencyPath(`/category?search=${encodeURIComponent(searchQuery.trim())}`)}
+                              onClick={() => {
+                                setShowSearchSuggestions(false);
+                                saveSearchHistory(searchQuery);
+                              }}
+                              className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-[#0a923c] hover:bg-gray-50 transition-colors"
+                            >
+                              View all results for "{searchQuery}"
+                              <ChevronRight size={14} />
+                            </Link>
+                          </div>
+                        )}
+                      </div>
+                    ) : searchQuery.trim().length >= 2 ? (
+                      <div className="p-6 text-center text-xs text-gray-500">
+                        No results found
+                      </div>
+                    ) : (
+                      <div className="py-2">
+                        {/* Recent Searches */}
+                        {recentSearches.length > 0 && (
+                          <div className="border-b border-gray-100">
+                            <div className="px-3 py-1.5 flex items-center justify-between">
+                              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Recent Searches</div>
+                              <button
+                                onClick={() => {
+                                  localStorage.removeItem("recentSearches");
+                                  setRecentSearches([]);
+                                }}
+                                className="text-[10px] text-gray-400 hover:text-gray-600"
+                              >
+                                Clear
+                              </button>
+                            </div>
+                            {recentSearches.map((search, index) => (
+                              <Link
+                                key={index}
+                                href={getAgencyPath(`/category?search=${encodeURIComponent(search)}`)}
+                                onClick={() => {
+                                  setShowSearchSuggestions(false);
+                                  saveSearchHistory(search);
+                                  setSearchQuery("");
+                                }}
+                                className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 transition-colors"
+                              >
+                                <Search size={14} className="text-gray-400 shrink-0" />
+                                <span className="text-xs text-gray-700">{search}</span>
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Popular Searches */}
+                        {popularSearches.length > 0 && (
+                          <div>
+                            <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wide">Popular Searches</div>
+                            <div className="px-3 pb-2 flex flex-wrap gap-1.5">
+                              {popularSearches.map((search, index) => (
+                                <Link
+                                  key={index}
+                                  href={getAgencyPath(`/category?search=${encodeURIComponent(search)}`)}
+                                  onClick={() => {
+                                    setShowSearchSuggestions(false);
+                                    saveSearchHistory(search);
+                                    setSearchQuery("");
+                                  }}
+                                  className="px-2.5 py-1 text-xs text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                                >
+                                  {search}
+                                </Link>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* MOBILE SEARCH ICON */}
+            <button
+              onClick={() => {
+                setShowMobileSearch(true);
+                setSearchQuery("");
+                setShowSearchSuggestions(true);
+              }}
+              className="md:hidden p-2 hover:bg-gray-100 rounded-md transition-colors"
+              aria-label="Search"
+            >
+              <Search size={24} className="text-gray-700" />
+            </button>
+
+            {/* RIGHT SIDE ACTIONS */}
+            <div className="hidden md:flex items-center gap-2 md:gap-4 shrink-0">
+
+              {/* Notifications - Only show if user is logged in */}
+              {user && (
+                <div className="relative notification-dropdown">
+                  <button
+                    onClick={() => setShowNotifications(!showNotifications)}
+                    className="relative p-2 hover:bg-gray-100 rounded-md transition-colors"
+                  >
+                    <Bell className="w-5 h-5 text-gray-700" />
+                    {unreadNotifications > 0 && (
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                        {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                      </span>
+                    )}
+                  </button>
 
                 {/* Notifications Dropdown */}
                 {showNotifications && (
                   <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-y-auto notification-dropdown">
                     <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-                      <h3 className="font-semibold text-gray-900">Notifications</h3>
+                      <h3 className="font-bold text-gray-900">Notifications</h3>
                       {unreadNotifications > 0 && (
                         <button
                           onClick={() => handleMarkAsRead()}
@@ -523,7 +913,7 @@ export default function Header() {
                                 handleMarkAsRead(notif.id);
                               }
                               if (notif.orderId) {
-                                window.location.href = `/profile/orders/${notif.orderId}`;
+                                window.location.href = getAgencyPath(`/profile/orders/${notif.orderId}`);
                               }
                               setShowNotifications(false);
                             }}
@@ -533,7 +923,7 @@ export default function Header() {
                                 !notif.read ? "bg-[#0a923c]" : "bg-gray-300"
                               }`} />
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-gray-900">{notif.title}</p>
+                                <p className="text-sm font-bold text-gray-900">{notif.title}</p>
                                 <p className="text-xs text-gray-600 mt-1">{notif.message}</p>
                                 <p className="text-xs text-gray-400 mt-2">
                                   {new Date(notif.createdAt).toLocaleString()}
@@ -547,7 +937,7 @@ export default function Header() {
                     {notifications.length > 0 && (
                       <div className="p-2 border-t border-gray-200">
                         <Link
-                          href="/profile?tab=orders"
+                          href={getAgencyPath("/profile?tab=orders")}
                           className="block text-center text-xs text-[#0a923c] hover:underline py-2"
                           onClick={() => setShowNotifications(false)}
                         >
@@ -560,345 +950,168 @@ export default function Header() {
               </div>
             )}
 
-            {user ? (
-              <div className="relative">
-                <button
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center hover:text-yellow-300 transition"
+              {/* User Account */}
+              {user ? (
+                <div 
+                  className="relative user-menu-dropdown"
+                  onMouseEnter={() => setShowUserMenu(true)}
+                  onMouseLeave={() => setShowUserMenu(false)}
                 >
-                  <CircleUserRound size={24} />
-                  <span className="hidden lg:inline ml-1 truncate max-w-[120px]">
-                    {user.fullName || "Account"}
-                  </span>
-                  <ChevronDown
-                    size={16}
-                    className={`ml-1 transition-transform ${showUserMenu ? "rotate-180" : ""}`}
-                  />
-                </button>
-
-                <AnimatePresence>
-                  {showUserMenu && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.2 }}
-                      className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden z-50"
-                      onMouseLeave={() => setShowUserMenu(false)}
-                    >
-                      <div className="py-2">
-                        <Link
-                          href="/profile"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                        >
-                          Account Information
-                        </Link>
-                        <Link
-                          href="/cart"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                        >
-                          Shopping Cart
-                        </Link>
-                        <div className="border-t border-gray-200 my-1"></div>
-                        <button
-                          onClick={handleLogout}
-                          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                        >
-                          Logout
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            ) : (
-              <>
-            <Link
-                  href="/login"
-              className="flex items-center hover:text-yellow-300 transition"
-            >
-              <CircleUserRound size={24} />
-                  <span className="hidden lg:inline ml-1">Login</span>
-            </Link>
-
-            <span className="hidden md:block opacity-50">|</span>
-
-            <Link
-                  href="/register"
-              className="hidden sm:inline hover:text-yellow-300 transition"
-            >
-                  Sign Up
-            </Link>
-              </>
-            )}
-
-            {/* KHO HÀNG */}
-            <div className="hidden md:flex items-center text-sm text-white relative ">
-              <div className="flex items-center bg-white/10 hover:bg-white/20 transition px-3 py-2 rounded-lg cursor-pointer">
-                <Store size={16} className="mr-2 text-white/90" />
-                <span className="opacity-90">Ship from warehouse:</span>
-
-                <div className=" relative">
-                  <motion.button
-                    onClick={() => setOpen(!open)}
-                    className="flex items-center font-semibold outline-none"
-                  >
-                    {selected}
-                    <motion.span
-                      animate={{ rotate: open ? 180 : 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="ml-1"
-                    >
-                    </motion.span>
-                  </motion.button>
-                </div>
-              </div>
-            </div>
-
-            {/* CART */}
-            <Link
-              href="/cart"
-              className="relative hover:text-yellow-300 m-0"
-            >
-              <ShoppingCart size={24} />
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-2 bg-red-500 w-5 h-5 text-[10px] rounded-full flex justify-center items-center text-white font-semibold">
-                  {cartCount > 99 ? "99+" : cartCount}
-              </span>
-              )}
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* ▬▬▬ SEARCH MOBILE ▬▬▬ */}
-      <div className="md:hidden bg-[#0a923c] py-2">
-        <div className="container flex items-center gap-2">
-          {/* MENU MOBILE */}
-          <button
-            className="md:hidden"
-            onClick={() => setIsMenuOpen(true)}
-          >
-            <Menu size={30} color="white" />
-          </button>
-
-          <form 
-            className="flex flex-1"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (searchQuery.trim()) {
-                window.location.href = `/category?search=${encodeURIComponent(searchQuery.trim())}`;
-              }
-            }}
-          >
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search products, posts..."
-              className="flex-1 h-8 px-3 rounded-l-md text-sm outline-none bg-white"
-            />
-            <button 
-              type="submit"
-              className="bg-white w-12 rounded-r-md flex justify-center items-center hover:bg-gray-50 transition-colors"
-            >
-              <Search size={20} className="text-[#10723a]" />
-            </button>
-          </form>
-        </div>
-      </div>
-
-      {/* ▬▬▬ NAVIGATION DESKTOP ▬▬▬ */}
-      <div className="hidden md:block bg-[#0a923c]">
-        <div className="container mx-auto px-2.5 flex items-center justify-between">
-          <div className="flex items-center text-white w-full">
-            <div
-              className="relative"
-              onMouseEnter={() => setHoverCategoryMenu(true)}
-              onMouseLeave={() => setHoverCategoryMenu(false)}
-            >
-              <button className="flex items-center bg-[#04772f] px-3 py-2.5 text-sm font-semibold hover:text-yellow-300 cursor-pointer transition">
-                <Menu size={20} className="mr-2" />
-                PRODUCT CATEGORIES
-                <ChevronDown
-                  size={16}
-                  className={`ml-1 transition-transform ${
-                    hoverCategoryMenu ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              {/* CATEGORIES DROPDOWN */}
-              <AnimatePresence>
-                {hoverCategoryMenu && categories.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                    className="absolute top-full left-0 mt-1 w-72 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden z-50"
-                  >
-                    <div className="max-h-[600px] overflow-y-auto">
-                      {categories.map((category) => (
-                        <div
-                          key={category.id}
-                          className="relative"
-                          onMouseEnter={() => setHoveredCategoryId(category.id)}
-                          onMouseLeave={() => setHoveredCategoryId(null)}
-                        >
-                          <Link
-                            href={`/category/${category.slug}`}
-                            className={`flex items-center gap-3 px-4 py-3 transition-colors border-b border-gray-100 last:border-b-0 ${
-                              hoveredCategoryId === category.id
-                                ? "bg-[#0a923c] text-white"
-                                : "hover:bg-gray-50"
-                            }`}
-                          >
-                            {category.image && (
-                              <div className="w-10 h-10 rounded-md overflow-hidden shrink-0 bg-gray-100">
-                                <Image
-                                  src={category.image}
-                                  alt={category.name}
-                                  width={40}
-                                  height={40}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <p className={`text-sm font-semibold truncate ${
-                                hoveredCategoryId === category.id ? "text-white" : "text-gray-900"
-                              }`}>
-                                {category.name}
-                              </p>
-                              {category.productCount !== undefined && category.productCount > 0 && (
-                                <p className={`text-xs ${
-                                  hoveredCategoryId === category.id ? "text-white/80" : "text-gray-500"
-                                }`}>
-                                  {category.productCount} products
-                                </p>
-                              )}
-                            </div>
-                            {category.children && category.children.length > 0 && (
-                              <ChevronRight
-                                size={16}
-                                className={`shrink-0 ${
-                                  hoveredCategoryId === category.id ? "text-white" : "text-gray-400"
-                                }`}
-                              />
-                            )}
-                          </Link>
-
-                          {/* SUB-CATEGORIES */}
-                          {category.children && category.children.length > 0 && hoveredCategoryId === category.id && (
-                            <motion.div
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, x: -10 }}
-                              transition={{ duration: 0.2 }}
-                              className="absolute left-full top-0 ml-1 w-64 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden z-50"
-                            >
-                              <div className="max-h-[400px] overflow-y-auto">
-                                {category.children.map((child) => (
-                                  <Link
-                                    key={child.id}
-                                    href={`/category/${child.slug}`}
-                                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#0a923c] hover:text-white transition-colors border-b border-gray-100 last:border-b-0"
-                                  >
-                                    {child.image && (
-                                      <div className="w-8 h-8 rounded-md overflow-hidden shrink-0 bg-gray-100">
-                                        <Image
-                                          src={child.image}
-                                          alt={child.name}
-                                          width={32}
-                                          height={32}
-                                          className="w-full h-full object-cover"
-                                        />
-                                      </div>
-                                    )}
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium text-gray-900 hover:text-white truncate">
-                                        {child.name}
-                                      </p>
-                                      {child.productCount !== undefined && child.productCount > 0 && (
-                                        <p className="text-xs text-gray-500 hover:text-white/80">
-                                          {child.productCount} products
-                                        </p>
-                                      )}
-                                    </div>
-                                  </Link>
-                                ))}
-                              </div>
-                            </motion.div>
-                          )}
-                        </div>
-                      ))}
+                  <button className="flex items-center transition-colors px-3 py-2 min-w-[60px] gap-1">
+                    <CircleUserRound size={29} className="text-gray-700" />
+                    <div className="text-xs mt-0.5 hidden md:block">
+                      <div className="font-light">Hello,</div>
+                      <div className="font-bold truncate max-w-24">{user.fullName || "Account"}</div>
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                  </button>
 
-            {/* --- NAVIGATION WITH SUBMENU --- */}
-            <nav className="hidden ml-1 lg:flex relative lg:gap-4 lg:before:content-[''] lg:before:absolute lg:before:left-0 lg:before:right-0 lg:before:top-0 lg:before:bg-[#10723a] lg:before:h-[1px]">
-              {menus.map((menu) => (
-                <div
-                  key={menu.id}
-                  onMouseEnter={() => setHoverMenu(menu.id)}
-                  onMouseLeave={() => setHoverMenu(null)}
-                  className="relative px-3 py-2.5 hover:bg-[#04772f] transition-all duration-200"
-                >
-                  <Link
-                    href={menu.url || "#"}
-                    className="flex items-center space-x-1 transition"
-                  >
-                    <span className="text-sm cursor-pointer">{menu.title}</span>
-                    {menu.children && menu.children.length > 0 && (
-                      <ChevronDown
-                        size={16}
-                        className={`transition-transform ${
-                          hoverMenu === menu.id ? "rotate-180" : ""
-                        }`}
-                      />
-                    )}
-                  </Link>
-
-                  {/* --- MENU CON (MEGA MENU) --- */}
                   <AnimatePresence>
-                    {menu.children && menu.children.length > 0 && hoverMenu === menu.id && (
+                    {showUserMenu && (
                       <motion.div
-                        initial={{ opacity: 0, y: 10 }}
+                        initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
+                        exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: 0.2 }}
-                        style={{ marginTop: "10px" }}
-                        className="absolute bg-[#0a923c] text-white w-[260px] shadow-md z-50 "
+                        className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden z-50"
                       >
-                        <ul className="space-y-1 text-sm">
-                          {menu.children.map((child) => (
-                            <li key={child.id}>
-                              <Link
-                                href={child.url || "#"}
-                                className="block px-3 py-2 cursor-pointer transition-all duration-200 ease-in-out"
-                              >
-                                {child.title}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
+                        <div className="p-4 border-b border-gray-200 bg-gray-50">
+                          <div className="font-bold text-gray-900">{user.fullName || "Account"}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">{user.email}</div>
+                        </div>
+                        <div className="py-2">
+                          <Link
+                            href={getAgencyPath("/profile")}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            onClick={() => setShowUserMenu(false)}
+                          >
+                            <CircleUserRound size={18} className="text-gray-500" />
+                            <span>My Account</span>
+                          </Link>
+                          <Link
+                            href={getAgencyPath("/profile?tab=orders")}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            onClick={() => setShowUserMenu(false)}
+                          >
+                            <Store size={18} className="text-gray-500" />
+                            <span>My Orders</span>
+                          </Link>
+                          <Link
+                            href={getAgencyPath("/cart")}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            onClick={() => setShowUserMenu(false)}
+                          >
+                            <ShoppingCart size={18} className="text-gray-500" />
+                            <span>Shopping Cart</span>
+                          </Link>
+                          <div className="border-t border-gray-200 my-1"></div>
+                          <button
+                            onClick={() => {
+                              handleLogout();
+                              setShowUserMenu(false);
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                          >
+                            <LogOut size={18} />
+                            <span>Logout</span>
+                          </button>
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
-              ))}
-            </nav>
+              ) : (
+                <div 
+                  className="relative"
+                  onMouseEnter={() => setShowUserDropdown(true)}
+                  onMouseLeave={() => setShowUserDropdown(false)}
+                >
+                  <Link
+                    href="/login"
+                    className="flex items-center transition-colors px-3 py-2 min-w-[60px] gap-1"
+                  >
+                    <User size={29} />
+                    <div className="text-xs mt-0.5 hidden md:block">
+                      <div className="font-light">Welcome</div>
+                      <div className="font-bold">Sign in / Register</div>
+                    </div>
+                  </Link>
+
+                  {/* User Dropdown Menu */}
+                  <AnimatePresence>
+                    {showUserDropdown && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-50"
+                      >
+                        <div className="py-2">
+                          <Link
+                            href="/login"
+                            className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            onClick={() => setShowUserDropdown(false)}
+                          >
+                            <div className="font-bold text-gray-900">Sign in</div>
+                            <div className="text-xs text-gray-500 mt-0.5">New customer? Start here</div>
+                          </Link>
+                          <div className="border-t border-gray-200 my-1"></div>
+                          <Link
+                            href="/register"
+                            className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            onClick={() => setShowUserDropdown(false)}
+                          >
+                            <div className="font-bold text-gray-900">Register</div>
+                            <div className="text-xs text-gray-500 mt-0.5">Create your account</div>
+                          </Link>
+                          <div className="border-t border-gray-200 my-1"></div>
+                          <Link
+                            href={getAgencyPath("/profile?tab=orders")}
+                            className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            onClick={() => setShowUserDropdown(false)}
+                          >
+                            <div className="font-medium text-gray-900">My Orders</div>
+                          </Link>
+                          <Link
+                            href={getAgencyPath("/cart")}
+                            className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            onClick={() => setShowUserDropdown(false)}
+                          >
+                            <div className="font-medium text-gray-900">Shopping Cart</div>
+                          </Link>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+
+              {/* Shopping Cart */}
+              <Link
+                href={getAgencyPath("/cart")}
+                className="relative flex items-center transition-colors px-3 py-2 min-w-[60px] gap-2"
+              >
+                <ShoppingCart  size={29} />
+                <div className="flex items-center flex-col">
+                  {cartCount > 0 && (
+                    <span className="px-2 bg-red-500 text-white text-[10px] font-bold rounded-3xl flex justify-center items-center">
+                      {cartCount > 99 ? "99+" : cartCount}
+                    </span>
+                  )}
+                  <span className="text-xs font-bold mt-0.5 hidden md:block">Cart</span>
+                </div>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ▬▬▬ MOBILE MENU ▬▬▬ */}
+      {/* ▬▬▬ NAVIGATION BAR - AliExpress Style ▬▬▬ */}
+      
+
+      {/* ▬▬▬ MOBILE SEARCH MODAL ▬▬▬ */}
       <AnimatePresence>
-        {isMenuOpen && (
+        {showMobileSearch && (
           <>
             {/* BACKDROP */}
             <motion.div
@@ -907,270 +1120,223 @@ export default function Header() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               className="fixed inset-0 bg-black/60 backdrop-blur-sm md:hidden z-50"
-              onClick={() => setIsMenuOpen(false)}
+              onClick={() => {
+                setShowMobileSearch(false);
+                setShowSearchSuggestions(false);
+              }}
             />
             
-            {/* MENU PANEL */}
+            {/* SEARCH PANEL */}
             <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
+              initial={{ y: -100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -100, opacity: 0 }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="fixed right-0 top-0 w-[85%] max-w-sm h-full bg-white md:hidden z-50 shadow-2xl"
+              className="fixed top-0 left-0 right-0 bg-white md:hidden z-50 shadow-xl max-h-screen flex flex-col"
             >
-              <div className="flex flex-col h-full">
-                {/* HEADER */}
-                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 bg-[#0a923c]">
-                  <span className="text-lg font-semibold text-white">Menu</span>
+              <div className="p-4 border-b border-gray-200">
+                <form 
+                  className="flex items-center gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (searchQuery.trim()) {
+                      saveSearchHistory(searchQuery);
+                      setShowMobileSearch(false);
+                      setShowSearchSuggestions(false);
+                      window.location.href = getAgencyPath(`/category?search=${encodeURIComponent(searchQuery.trim())}`);
+                    }
+                  }}
+                >
                   <button
+                    type="button"
                     onClick={() => {
-                      setIsMenuOpen(false);
-                      setExpandedMenuId(null);
-                      setExpandedCategoryId(null);
+                      setShowMobileSearch(false);
+                      setShowSearchSuggestions(false);
                     }}
-                    className="p-2 rounded-full hover:bg-white/10 transition-colors"
+                    className="p-2 hover:bg-gray-100 rounded-md transition-colors shrink-0"
                   >
-                    <X size={20} className="text-white" />
+                    <X size={20} className="text-gray-700" />
                   </button>
-                </div>
-
-                {/* SCROLLABLE CONTENT */}
-                <div className="flex-1 overflow-y-auto">
-                  <nav className="px-4 py-3">
-                    {/* USER INFO & NOTIFICATIONS */}
-                    {user && (
-                      <>
-                        <div className="px-4 py-3 mb-2 bg-gray-50 rounded-xl">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-[#0a923c] flex items-center justify-center text-white font-semibold">
-                                {user.fullName?.charAt(0)?.toUpperCase() || "U"}
-                              </div>
-                              <div>
-                                <p className="text-sm font-semibold text-gray-900">
-                                  {user.fullName || "User"}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  {user.email || ""}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                          <Link
-                            href="/profile"
-                            onClick={() => setIsMenuOpen(false)}
-                            className="block text-center text-sm text-[#0a923c] font-medium py-2"
-                          >
-                            View Profile
-                          </Link>
-                        </div>
-                      </>
-                    )}
-
-                    {/* HOME */}
-                    <Link
-                      href="/"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors mb-1"
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setShowSearchSuggestions(true);
+                      }}
+                      onFocus={() => {
+                        setShowSearchSuggestions(true);
+                      }}
+                      placeholder="Search products, posts..."
+                      autoFocus
+                      className="w-full h-9 pl-4 pr-14 py-2 bg-white border border-black rounded-3xl text-gray-800 outline-none"
+                    />
+                    {/* Search Button Inside Input */}
+                    <button 
+                      type="submit"
+                      className="absolute right-0 top-1/2 -translate-y-1/2 h-[30px] mr-1 p-1 w-10 text-white rounded-2xl bg-black transition-all flex items-center justify-center"
+                      title="Search"
                     >
-                      <Store size={20} className="text-[#0a923c]" />
-                      <span className="text-[15px] font-medium text-gray-900">Home</span>
-                    </Link>
+                      <Search size={18} />
+                    </button>
+                  </div>
+                </form>
+              </div>
 
-                    {/* PRODUCT CATEGORIES */}
-                    {categories.length > 0 && (
-                      <div className="mb-2">
-                        <button
-                          onClick={() => setExpandedCategoryId(expandedCategoryId === "categories" ? null : "categories")}
-                          className="w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors"
-                        >
-                          <div className="flex items-center gap-3">
-                            <Menu size={20} className="text-[#0a923c]" />
-                            <span className="text-[15px] font-medium text-gray-900">Product Categories</span>
-                          </div>
-                          <ChevronRight
-                            size={18}
-                            className={`text-gray-400 transition-transform duration-200 ${
-                              expandedCategoryId === "categories" ? "rotate-90" : ""
-                            }`}
-                          />
-                        </button>
-                        
-                        <AnimatePresence>
-                          {expandedCategoryId === "categories" && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: "auto", opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.2 }}
-                              className="overflow-hidden"
-                            >
-                              <div className="pl-11 pr-4 py-2 space-y-1">
-                                {categories.map((category) => (
-                                  <div key={category.id}>
-                                    <button
-                                      onClick={() => setExpandedCategoryId(expandedCategoryId === category.id ? null : category.id)}
-                                      className="w-full flex items-center justify-between gap-2 py-2.5 px-3 rounded-lg hover:bg-gray-50 active:bg-gray-100 transition-colors"
-                                    >
-                                      <span className="text-[14px] text-gray-700">{category.name}</span>
-                                      {category.children && category.children.length > 0 && (
-                                        <ChevronRight
-                                          size={16}
-                                          className={`text-gray-400 transition-transform duration-200 ${
-                                            expandedCategoryId === category.id ? "rotate-90" : ""
-                                          }`}
-                                        />
-                                      )}
-                                    </button>
-                                    
-                                    {category.children && category.children.length > 0 && (
-                                      <AnimatePresence>
-                                        {expandedCategoryId === category.id && (
-                                          <motion.div
-                                            initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: "auto", opacity: 1 }}
-                                            exit={{ height: 0, opacity: 0 }}
-                                            transition={{ duration: 0.2 }}
-                                            className="overflow-hidden pl-2"
-                                          >
-                                            <div className="space-y-1">
-                                              {category.children.map((child) => (
-                                                <Link
-                                                  key={child.id}
-                                                  href={`/category/${child.slug}`}
-                                                  onClick={() => {
-                                                    setIsMenuOpen(false);
-                                                    setExpandedCategoryId(null);
-                                                  }}
-                                                  className="block py-2 px-4 text-[13px] text-gray-600 rounded-lg hover:bg-gray-50 active:bg-gray-100 transition-colors"
-                                                >
-                                                  {child.name}
-                                                </Link>
-                                              ))}
-                                            </div>
-                                          </motion.div>
-                                        )}
-                                      </AnimatePresence>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    )}
-
-                    {/* MENU ITEMS */}
-                    {menus.map((menu) => (
-                      <div key={menu.id} className="mb-1">
-                        {menu.children && menu.children.length > 0 ? (
-                          <>
-                            <button
-                              onClick={() => setExpandedMenuId(expandedMenuId === menu.id ? null : menu.id)}
-                              className="w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors"
-                            >
-                              <span className="text-[15px] font-medium text-gray-900">{menu.title}</span>
-                              <ChevronRight
-                                size={18}
-                                className={`text-gray-400 transition-transform duration-200 ${
-                                  expandedMenuId === menu.id ? "rotate-90" : ""
-                                }`}
-                              />
-                            </button>
-                            
-                            <AnimatePresence>
-                              {expandedMenuId === menu.id && (
-                                <motion.div
-                                  initial={{ height: 0, opacity: 0 }}
-                                  animate={{ height: "auto", opacity: 1 }}
-                                  exit={{ height: 0, opacity: 0 }}
-                                  transition={{ duration: 0.2 }}
-                                  className="overflow-hidden"
-                                >
-                                  <div className="pl-4 pr-4 py-2 space-y-1">
-                                    {menu.children.map((child) => (
-                                      <Link
-                                        key={child.id}
-                                        href={child.url || "#"}
-                                        onClick={() => {
-                                          setIsMenuOpen(false);
-                                          setExpandedMenuId(null);
-                                        }}
-                                        className="block py-2.5 px-4 text-[14px] text-gray-700 rounded-lg hover:bg-gray-50 active:bg-gray-100 transition-colors"
-                                      >
-                                        {child.title}
-                                      </Link>
-                                    ))}
-                                  </div>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </>
-                        ) : (
+              {/* MOBILE SEARCH SUGGESTIONS */}
+              <div className="flex-1 overflow-y-auto">
+                {loadingSuggestions && searchQuery.trim().length >= 2 ? (
+                  <div className="p-6 text-center">
+                    <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-[#0a923c]"></div>
+                  </div>
+                ) : searchQuery.trim().length >= 2 && (searchSuggestions.products.length > 0 || searchSuggestions.categories.length > 0) ? (
+                  <div className="py-1">
+                    {/* Categories */}
+                    {searchSuggestions.categories.length > 0 && (
+                      <div className="border-b border-gray-100">
+                        <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wide">Categories</div>
+                        {searchSuggestions.categories.map((category) => (
                           <Link
-                            href={menu.url || "#"}
-                            onClick={() => setIsMenuOpen(false)}
-                            className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors"
+                            key={category.id}
+                            href={getAgencyPath(`/category/${category.slug}`)}
+                            onClick={() => {
+                              setShowMobileSearch(false);
+                              setShowSearchSuggestions(false);
+                              saveSearchHistory(searchQuery);
+                              setSearchQuery("");
+                            }}
+                            className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 transition-colors"
                           >
-                            <span className="text-[15px] font-medium text-gray-900">{menu.title}</span>
+                            <Search size={14} className="text-gray-400 shrink-0" />
+                            <span className="text-xs text-gray-700">{highlightText(category.name, searchQuery)}</span>
                           </Link>
-                        )}
+                        ))}
                       </div>
-                    ))}
-
-                    {/* DIVIDER */}
-                    <div className="h-px bg-gray-200 my-3" />
-
-                    {/* LOGIN/LOGOUT */}
-                    {!user ? (
-                      <>
-                        <Link
-                          href="/login"
-                          onClick={() => setIsMenuOpen(false)}
-                          className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors mb-1"
-                        >
-                          <CircleUserRound size={20} className="text-[#0a923c]" />
-                          <span className="text-[15px] font-medium text-gray-900">Login</span>
-                        </Link>
-                        <Link
-                          href="/register"
-                          onClick={() => setIsMenuOpen(false)}
-                          className="flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors mb-1"
-                        >
-                          <CircleUserRound size={20} className="text-[#0a923c]" />
-                          <span className="text-[15px] font-medium text-gray-900">Sign Up</span>
-                        </Link>
-                      </>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setIsMenuOpen(false);
-                          handleLogout();
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-red-50 active:bg-red-100 transition-colors mb-1 text-red-600"
-                      >
-                        <LogOut size={20} />
-                        <span className="text-[15px] font-medium">Logout</span>
-                      </button>
                     )}
 
-                    {/* DIVIDER */}
-                    <div className="h-px bg-gray-200 my-3" />
+                    {/* Products */}
+                    {searchSuggestions.products.length > 0 && (
+                      <div>
+                        <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wide">Products</div>
+                        {searchSuggestions.products.map((product) => (
+                          <Link
+                            key={product.id}
+                            href={getAgencyPath(`/product/${product.slug}`)}
+                            onClick={() => {
+                              setShowMobileSearch(false);
+                              setShowSearchSuggestions(false);
+                              saveSearchHistory(searchQuery);
+                              setSearchQuery("");
+                            }}
+                            className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 transition-colors group"
+                          >
+                            <div className="w-10 h-10 rounded overflow-hidden shrink-0 bg-gray-100">
+                              <Image
+                                src={product.image}
+                                alt={product.name}
+                                width={40}
+                                height={40}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs text-gray-900 line-clamp-1">
+                                {highlightText(product.name, searchQuery)}
+                              </p>
+                              <p className="text-xs font-bold text-[#0a923c] mt-0.5">
+                                ${product.price.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </p>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
 
-                    {/* WAREHOUSE */}
-                    <div className="px-4 py-3">
-                      <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl">
-                        <Store size={18} className="text-gray-600" />
-                        <div>
-                          <p className="text-[12px] text-gray-500">Ship from warehouse</p>
-                          <p className="text-[14px] font-semibold text-gray-900">{selected}</p>
+                    {/* View All Results */}
+                    {searchQuery.trim() && (searchSuggestions.products.length > 0 || searchSuggestions.categories.length > 0) && (
+                      <div className="border-t border-gray-100 mt-1">
+                        <Link
+                          href={getAgencyPath(`/category?search=${encodeURIComponent(searchQuery.trim())}`)}
+                          onClick={() => {
+                            setShowMobileSearch(false);
+                            setShowSearchSuggestions(false);
+                            saveSearchHistory(searchQuery);
+                          }}
+                          className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-[#0a923c] hover:bg-gray-50 transition-colors"
+                        >
+                          View all results for "{searchQuery}"
+                          <ChevronRight size={14} />
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                ) : searchQuery.trim().length >= 2 ? (
+                  <div className="p-6 text-center text-xs text-gray-500">
+                    No results found
+                  </div>
+                ) : (
+                  <div className="py-2">
+                    {/* Recent Searches */}
+                    {recentSearches.length > 0 && (
+                      <div className="border-b border-gray-100">
+                        <div className="px-3 py-1.5 flex items-center justify-between">
+                          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Recent Searches</div>
+                          <button
+                            onClick={() => {
+                              localStorage.removeItem("recentSearches");
+                              setRecentSearches([]);
+                            }}
+                            className="text-[10px] text-gray-400 hover:text-gray-600"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                        {recentSearches.map((search, index) => (
+                          <Link
+                            key={index}
+                            href={getAgencyPath(`/category?search=${encodeURIComponent(search)}`)}
+                            onClick={() => {
+                              setShowMobileSearch(false);
+                              setShowSearchSuggestions(false);
+                              saveSearchHistory(search);
+                              setSearchQuery("");
+                            }}
+                            className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 transition-colors"
+                          >
+                            <Search size={14} className="text-gray-400 shrink-0" />
+                            <span className="text-xs text-gray-700">{search}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Popular Searches */}
+                    {popularSearches.length > 0 && (
+                      <div>
+                        <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wide">Popular Searches</div>
+                        <div className="px-3 pb-2 flex flex-wrap gap-1.5">
+                          {popularSearches.map((search, index) => (
+                            <Link
+                              key={index}
+                              href={getAgencyPath(`/category?search=${encodeURIComponent(search)}`)}
+                              onClick={() => {
+                                setShowMobileSearch(false);
+                                setShowSearchSuggestions(false);
+                                saveSearchHistory(search);
+                                setSearchQuery("");
+                              }}
+                              className="px-2.5 py-1 text-xs text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                            >
+                              {search}
+                            </Link>
+                          ))}
                         </div>
                       </div>
-                    </div>
-                  </nav>
-                </div>
+                    )}
+                  </div>
+                )}
               </div>
             </motion.div>
           </>
